@@ -2,6 +2,16 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.0.2 — 2026-10-05
+
+Página de detalhe modernizada e mais dados coletados.
+
+- **Aba Resumo reformulada:** hostname, usuário logado, se o usuário é local ou de domínio, domínio, tipo, sistema, instalado em, placa-mãe, processador, memória, armazenamento, placa de vídeo, placa de rede, placa de som, MAC e IP — sempre os principais da máquina.
+- **Nova aba Usuários:** usuário conectado, usuários locais, usuários que já usaram a máquina (local, domínio e rede, resolvendo os perfis) e membros dos grupos de acesso (inclui contas de domínio).
+- **Cada tabela com dados** ganhou **busca em tempo real** (alcança todas as colunas e linhas, com contador) e **ordenação por clique no cabeçalho**.
+- Coleta nova: tipo do usuário (local/domínio), placa de rede, MAC e IP principais, usuários locais e de domínio/rede.
+- Visual mais moderno: cabeçalhos fixos, listas roláveis e melhor uso do espaço da página.
+
 ## 1.0.1 — 2026-10-05
 
 Correção importante no script de coleta.

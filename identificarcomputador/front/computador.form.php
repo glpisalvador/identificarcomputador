@@ -79,31 +79,42 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
     <button type="button" class="identificarcomputador-aba ativa" data-aba="resumo"><i class="ti ti-id"></i> Resumo</button>
     <button type="button" class="identificarcomputador-aba" data-aba="hardware"><i class="ti ti-cpu"></i> Hardware</button>
     <button type="button" class="identificarcomputador-aba" data-aba="rede"><i class="ti ti-network"></i> Rede e portas</button>
+    <button type="button" class="identificarcomputador-aba" data-aba="usuarios"><i class="ti ti-users"></i> Usuários</button>
     <button type="button" class="identificarcomputador-aba" data-aba="seguranca"><i class="ti ti-shield"></i> Segurança</button>
     <button type="button" class="identificarcomputador-aba" data-aba="programas"><i class="ti ti-apps"></i> Programas</button>
     <button type="button" class="identificarcomputador-aba" data-aba="historico"><i class="ti ti-history"></i> Histórico</button>
   </div>
 
   <div class="identificarcomputador-aba-corpo ativa" data-corpo="resumo">
-    <?php echo $kv([
-      'Hostname'        => $d['hostname'] ?? '',
-      'Usuário logado'  => $d['usuario_logado'] ?? '',
-      'Domínio'         => $d['dominio'] ?? '',
-      'Tipo'            => $d['tipo'] ?? '',
-      'Sistema'         => trim(($d['so'] ?? '') . ' ' . ($d['so_arquitetura'] ?? '')),
-      'Versão / build'  => trim(($d['so_versao'] ?? '') . ' (' . ($d['so_build'] ?? '') . ')', ' ()'),
-      'Instalado em'    => $d['instalado_em'] ?? '',
-      'Fabricante'      => $d['fabricante'] ?? '',
-      'Modelo'          => $d['modelo'] ?? '',
-      'Nº de série'     => $d['serial_maquina'] ?? '',
-      'UUID'            => $d['uuid'] ?? '',
-      'BIOS'            => trim(($d['bios_fabricante'] ?? '') . ' ' . ($d['bios_versao'] ?? '')),
-      'Ligado há'       => isset($d['uptime_horas']) ? ($d['uptime_horas'] . ' h') : '',
-      'Último boot'     => $d['ultimo_boot'] ?? '',
-      'Coletas'         => (string) ($det['resumo']['qtd_coletas'] ?? ''),
-      'Primeira coleta' => Html::convDateTime($det['resumo']['date_creation'] ?? ''),
-      'Última coleta'   => Html::convDateTime($det['resumo']['date_mod'] ?? ''),
-    ]); ?>
+    <?php
+    $macP = trim((string) ($d['mac_principal'] ?? ''));
+    if ($macP === '') { $macP = (string) ($d['adaptadores_rede'][0]['mac'] ?? $det['resumo']['macs'] ?? ''); }
+    $ipP = trim((string) ($d['ip_principal'] ?? ''));
+    if ($ipP === '') { $ipP = (string) ($d['ips_detalhe'][0]['ipv4'] ?? $det['resumo']['ips'] ?? ''); }
+    $placaRede = trim((string) ($d['placa_rede_principal'] ?? $d['placa_rede'] ?? ''));
+    if ($placaRede === '' && !empty($d['adaptadores_rede'][0]['descricao'])) { $placaRede = (string) $d['adaptadores_rede'][0]['descricao']; }
+    $placaSom = $d['placas_som'] ?? '';
+    if (is_array($placaSom)) { $placaSom = implode('; ', $placaSom); }
+    $ram = isset($d['ram_total_gb']) ? ($d['ram_total_gb'] . ' GB') : $gb($det['resumo']['ram_total'] ?? 0);
+    echo $kv([
+      'Hostname'            => $d['hostname'] ?? '',
+      'Usuário logado'      => $d['usuario_logado'] ?? '',
+      'Tipo de usuário'     => $d['usuario_tipo'] ?? '',
+      'Domínio'             => ($d['dominio'] ?? '') . (isset($d['parte_de_dominio']) && !$d['parte_de_dominio'] ? ' (grupo de trabalho)' : ''),
+      'Tipo'                => $d['tipo'] ?? '',
+      'Sistema'             => trim(($d['so'] ?? '') . ' ' . ($d['so_arquitetura'] ?? '')),
+      'Instalado em'        => $d['instalado_em'] ?? '',
+      'Placa-mãe'           => $d['placa_mae'] ?? '',
+      'Processador'         => $d['processador'] ?? '',
+      'Memória RAM'         => $ram,
+      'Armazenamento'       => $gb($d['armazenamento_total_bytes'] ?? ($det['resumo']['armazenamento_total'] ?? 0)),
+      'Placa de vídeo'      => $d['placa_video'] ?? '',
+      'Placa de rede'       => $placaRede,
+      'Placa de som'        => $placaSom,
+      'Endereço MAC'        => $macP,
+      'IP'                  => $ipP,
+    ]);
+    ?>
   </div>
 
   <div class="identificarcomputador-aba-corpo" data-corpo="hardware">
@@ -152,6 +163,22 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
     <?php echo $tab([['k'=>'adaptador','t'=>'Adaptador'],['k'=>'ipv4','t'=>'IPv4'],['k'=>'gateway','t'=>'Gateway'],['k'=>'dns','t'=>'DNS']], $d['ips_detalhe'] ?? []); ?>
     <div class="identificarcomputador-bloco-tit">Portas abertas e quem as usa</div>
     <?php echo $tab([['k'=>'protocolo','t'=>'Protocolo'],['k'=>'porta','t'=>'Porta'],['k'=>'endereco','t'=>'Endereço'],['k'=>'processo','t'=>'Processo'],['k'=>'pid','t'=>'PID'],['k'=>'caminho','t'=>'Caminho']], $d['portas'] ?? []); ?>
+  </div>
+
+  <div class="identificarcomputador-aba-corpo" data-corpo="usuarios">
+    <div class="identificarcomputador-bloco-tit">Usuário conectado</div>
+    <?php echo $kv([
+      'Usuário'         => $d['usuario_logado'] ?? '',
+      'Tipo'            => $d['usuario_tipo'] ?? '',
+      'Domínio / grupo' => $d['dominio'] ?? '',
+    ]); ?>
+    <div class="identificarcomputador-bloco-tit">Usuários locais</div>
+    <?php echo $tab([['k'=>'nome','t'=>'Nome'],['k'=>'ativo','t'=>'Ativo'],['k'=>'ultimo_logon','t'=>'Último logon'],['k'=>'descricao','t'=>'Descrição']],
+      array_map(static fn($u) => ['nome'=>$u['nome'] ?? '', 'ativo'=>!empty($u['ativo'])?'Sim':'Não', 'ultimo_logon'=>$u['ultimo_logon'] ?? '', 'descricao'=>$u['descricao'] ?? ''], (array) ($d['usuarios_locais'] ?? []))); ?>
+    <div class="identificarcomputador-bloco-tit">Usuários que já usaram a máquina (local, domínio e rede)</div>
+    <?php echo $tab([['k'=>'usuario','t'=>'Usuário'],['k'=>'tipo','t'=>'Tipo'],['k'=>'ultimo_uso','t'=>'Último uso'],['k'=>'perfil','t'=>'Perfil']], $d['usuarios_maquina'] ?? []); ?>
+    <div class="identificarcomputador-bloco-tit">Membros de grupos de acesso (administradores e acesso remoto)</div>
+    <?php echo $tab([['k'=>'grupo','t'=>'Grupo'],['k'=>'membro','t'=>'Membro'],['k'=>'tipo','t'=>'Tipo'],['k'=>'origem','t'=>'Origem']], $d['membros_grupos'] ?? []); ?>
   </div>
 
   <div class="identificarcomputador-aba-corpo" data-corpo="seguranca">

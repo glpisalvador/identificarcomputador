@@ -62,8 +62,61 @@
         });
     }
 
+    // Busca em tempo real + ordenacao por clique no cabecalho, em cada tabela com dados
+    function enhanceTabela(tbl) {
+        var isKv = tbl.classList.contains('identificarcomputador-kv');
+        var corpo = tbl.tBodies[0] || tbl;
+        var dataRows = Array.prototype.slice.call(corpo.rows).filter(function (r) { return r.cells.length > 0; });
+        if (dataRows.length < 5) { return; }
+
+        var tb = document.createElement('div');
+        tb.className = 'identificarcomputador-tbl-busca';
+        tb.innerHTML = '<i class="ti ti-search"></i><input type="text" placeholder="Buscar nesta lista...">';
+        tbl.parentNode.insertBefore(tb, tbl);
+        var inp = tb.querySelector('input');
+        var cont = document.createElement('span');
+        cont.className = 'identificarcomputador-tbl-cont';
+        tb.appendChild(cont);
+        function atualizarCont() {
+            var vis = dataRows.filter(function (r) { return r.style.display !== 'none'; }).length;
+            cont.textContent = vis + ' / ' + dataRows.length;
+        }
+        inp.addEventListener('keyup', function () {
+            var t = inp.value.toLowerCase();
+            dataRows.forEach(function (r) { r.style.display = r.textContent.toLowerCase().indexOf(t) >= 0 ? '' : 'none'; });
+            atualizarCont();
+        });
+        atualizarCont();
+
+        if (!isKv && tbl.tHead) {
+            var ths = Array.prototype.slice.call(tbl.tHead.rows[0].cells);
+            ths.forEach(function (th, idx) {
+                th.classList.add('identificarcomputador-th-sort');
+                th.addEventListener('click', function () {
+                    var dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
+                    ths.forEach(function (x) { x.removeAttribute('data-dir'); x.classList.remove('sorted-asc', 'sorted-desc'); });
+                    th.setAttribute('data-dir', dir);
+                    th.classList.add(dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                    var rows = Array.prototype.slice.call(corpo.rows);
+                    rows.sort(function (a, b) {
+                        var x = (a.cells[idx] ? a.cells[idx].textContent : '').trim();
+                        var y = (b.cells[idx] ? b.cells[idx].textContent : '').trim();
+                        var nx = parseFloat(x.replace(/\./g, '').replace(',', '.')), ny = parseFloat(y.replace(/\./g, '').replace(',', '.'));
+                        if (!isNaN(nx) && !isNaN(ny) && /^[\d.,\s]+/.test(x)) { return (nx - ny) * (dir === 'asc' ? 1 : -1); }
+                        return x.localeCompare(y, 'pt', { numeric: true }) * (dir === 'asc' ? 1 : -1);
+                    });
+                    rows.forEach(function (r) { corpo.appendChild(r); });
+                });
+            });
+        }
+    }
+    function enhanceTabelasDetalhe() {
+        document.querySelectorAll('.identificarcomputador-detalhe table').forEach(enhanceTabela);
+    }
+
     // ----------------------------------------------------------------- detalhe: abas e excluir
     function initDetalhe() {
+        enhanceTabelasDetalhe();
         document.querySelectorAll('.identificarcomputador-aba').forEach(function (b) {
             b.addEventListener('click', function () {
                 var aba = b.getAttribute('data-aba');

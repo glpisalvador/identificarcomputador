@@ -163,3 +163,21 @@
 .identificarcomputador-confirm-cx { background: #fff; border-radius: 6px; padding: 18px 20px; max-width: 360px; box-shadow: 0 8px 28px rgba(0,0,0,.2); }
 .identificarcomputador-confirm-cx .msg { font-size: 13px; color: #333; margin-bottom: 14px; }
 .identificarcomputador-confirm-cx .acoes { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Detalhe: busca por tabela + ordenacao + visual moderno (1.0.2) */
+.identificarcomputador-detalhe { max-width: 100%; }
+.identificarcomputador-tbl-busca {
+  display: flex; align-items: center; gap: 6px; margin: 2px 0 6px;
+  padding: 3px 8px; background: #f8f9fa; border: 1px solid #e8e8e8; border-radius: 4px; max-width: 420px;
+}
+.identificarcomputador-tbl-busca i { color: #8b95a5; font-size: 13px; }
+.identificarcomputador-tbl-busca input { flex: 1; border: 0; background: none; font-size: 12px; outline: none; }
+.identificarcomputador-tbl-cont { font-size: 10px; color: #999; white-space: nowrap; }
+.identificarcomputador-tabela-det thead th { position: sticky; top: 0; background: #f8f9fa; z-index: 1; }
+.identificarcomputador-tabela-det tbody tr:nth-child(even) { background: #fcfcfd; }
+.identificarcomputador-tabela-det thead th.identificarcomputador-th-sort { cursor: pointer; user-select: none; }
+.identificarcomputador-tabela-det thead th.identificarcomputador-th-sort:hover { background: #fff3cd; }
+.identificarcomputador-detalhe .identificarcomputador-tabela-cx,
+.identificarcomputador-detalhe .identificarcomputador-tabela-det { max-height: 440px; overflow: auto; display: block; }
+.identificarcomputador-detalhe .identificarcomputador-tabela-det { border: 1px solid #e8e8e8; border-radius: 4px; }
+.identificarcomputador-detalhe .identificarcomputador-bloco-tit { border-left: 3px solid #e5a54b; padding-left: 8px; }
