@@ -2,6 +2,13 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.0.1 — 2026-10-05
+
+Correção importante no script de coleta.
+
+- O arquivo .cmd antes embutia o PowerShell numa única linha `-EncodedCommand`, que passava do limite de 8191 caracteres do cmd.exe e dava **"O sistema não pode executar o programa especificado"** no Windows, sem coletar nada.
+- Agora o .cmd grava o PowerShell num arquivo temporário e o executa, sem linha de comando gigante. Testado de ponta a ponta no Windows 11 (coleta e envio ao GLPI com sucesso).
+
 ## 1.0.0 — 2026-10-05
 
 Primeira versão publicada.
