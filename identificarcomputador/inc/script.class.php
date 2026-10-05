@@ -188,6 +188,11 @@ try {
     $d.bios_fabricante= $bios.Manufacturer
     $d.serial_maquina = $bios.SerialNumber
     $d.uuid           = $csp.UUID
+    $d.parte_de_dominio = [bool]$cs.PartOfDomain
+    # Tipo do usuario logado: Local se o dominio dele e a propria maquina
+    $ul = [string]$d.usuario_logado
+    $pref = if ($ul -match '\\') { ($ul -split '\\')[0] } else { '' }
+    $d.usuario_tipo = if ($pref -and $pref -ieq $env:COMPUTERNAME) { 'Local' } elseif ($cs.PartOfDomain) { 'Dominio' } else { 'Local' }
     Linha ($d.hostname + ' - ' + $d.so)
 } catch { Linha 'falha parcial na identificacao' }
 
@@ -279,6 +284,53 @@ try {
     }
     $d.ips_detalhe = $ips
     $d.ips = (($ips | Where-Object { $_.ipv4 } | ForEach-Object { $_.ipv4 }) -join ', ')
+} catch {}
+# Placa de rede, MAC e IP PRINCIPAIS (adaptador com gateway padrao)
+try {
+    $prim = Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1
+    if (-not $prim) { $prim = Get-NetIPConfiguration | Where-Object { $_.IPv4Address -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1 }
+    if ($prim) {
+        $d.placa_rede_principal = $prim.InterfaceDescription
+        $d.ip_principal  = ($prim.IPv4Address | Select-Object -First 1).IPAddress
+        $d.mac_principal = $prim.NetAdapter.MacAddress
+    }
+    $d.placa_rede = (($d.adaptadores_rede | Where-Object { $_.mac -and $_.status -eq 'Up' } | ForEach-Object { $_.descricao }) -join '; ')
+} catch {}
+
+Secao 'Usuarios'
+try {
+    $locais = @()
+    try {
+        foreach ($u in Get-LocalUser) {
+            $locais += [ordered]@{ nome = $u.Name; ativo = [bool]$u.Enabled; ultimo_logon = if ($u.LastLogon) { $u.LastLogon.ToString('yyyy-MM-dd HH:mm') } else { '' }; descricao = $u.Description }
+        }
+    } catch {
+        foreach ($u in Get-CimInstance Win32_UserAccount -Filter 'LocalAccount=True') { $locais += [ordered]@{ nome = $u.Name; ativo = (-not $u.Disabled); descricao = $u.FullName } }
+    }
+    $d.usuarios_locais = $locais
+} catch {}
+try {
+    # Contas que ja usaram a maquina (perfis), resolvendo o SID para dominio\usuario
+    $pod = [bool]$d.parte_de_dominio
+    $perfis = @()
+    foreach ($p in Get-CimInstance Win32_UserProfile | Where-Object { -not $_.Special }) {
+        $nome = ''
+        try { $nome = (New-Object System.Security.Principal.SecurityIdentifier($p.SID)).Translate([System.Security.Principal.NTAccount]).Value } catch { $nome = Split-Path $p.LocalPath -Leaf }
+        $dm = if ($nome -match '\\') { ($nome -split '\\')[0] } else { '' }
+        $tipo = if ($dm -and $dm -ieq $env:COMPUTERNAME) { 'Local' } elseif ($pod -and $dm -and $dm -notmatch 'NT |NT-') { 'Dominio' } else { 'Local' }
+        $uso = ''
+        try { if ($p.LastUseTime) { $uso = ([Management.ManagementDateTimeConverter]::ToDateTime($p.LastUseTime)).ToString('yyyy-MM-dd HH:mm') } } catch {}
+        $perfis += [ordered]@{ usuario = $nome; tipo = $tipo; ultimo_uso = $uso; perfil = $p.LocalPath }
+    }
+    $d.usuarios_maquina = $perfis
+} catch {}
+try {
+    # Membros dos grupos de acesso (inclui usuarios de dominio e de rede com acesso a maquina)
+    $grupos = @()
+    foreach ($g in 'Administradores', 'Administrators', 'Usuarios de Area de Trabalho Remota', 'Remote Desktop Users') {
+        try { foreach ($m in Get-LocalGroupMember -Group $g -ErrorAction Stop) { $grupos += [ordered]@{ grupo = $g; membro = $m.Name; tipo = [string]$m.ObjectClass; origem = [string]$m.PrincipalSource } } } catch {}
+    }
+    $d.membros_grupos = $grupos
 } catch {}
 
 Secao 'Portas abertas e quem as usa'
