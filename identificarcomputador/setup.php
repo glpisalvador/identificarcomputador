@@ -10,7 +10,7 @@
  * Independente do inventario nativo do GLPI: usa apenas tabelas proprias.
  */
 
-define('PLUGIN_IDENTIFICARCOMPUTADOR_VERSION', '1.0.0');
+define('PLUGIN_IDENTIFICARCOMPUTADOR_VERSION', '1.0.1');
 define('PLUGIN_IDENTIFICARCOMPUTADOR_MIN_GLPI', '11.0.0');
 define('PLUGIN_IDENTIFICARCOMPUTADOR_MAX_GLPI', '12.99.99');
 

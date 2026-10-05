@@ -92,7 +92,14 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
 
     // ------------------------------------------------------------------ geracao do .cmd
 
-    /** Monta o conteudo do arquivo .cmd pronto para download. */
+    /**
+     * Monta o conteudo do arquivo .cmd pronto para download.
+     *
+     * O PowerShell NAO vai na linha de comando (passaria dos 8191 caracteres que o cmd.exe
+     * aceita e daria "O sistema nao pode executar o programa especificado"). Em vez disso,
+     * o .cmd traz o PowerShell como texto apos um marcador no fim do arquivo, extrai para um
+     * .ps1 temporario e o executa.
+     */
     public static function gerarCmd(string $token): string
     {
         $url     = PluginIdentificarcomputadorConfig::getUrlRecebimento();
@@ -102,10 +109,14 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
         $ps = self::powershell();
         $ps = str_replace(['{{DESTINO}}', '{{TOKEN}}', '{{MINUTOS}}'], [$destino, $token, (string) $minutos], $ps);
 
-        // UTF-16LE + base64 para o parametro -EncodedCommand do PowerShell
-        $b64 = base64_encode(mb_convert_encoding($ps, 'UTF-16LE', 'UTF-8'));
+        $marcador = '#__PS_INICIO__#';
+        $tam      = strlen($marcador);
+        // IndexOf monta o marcador em dois pedacos para a propria linha nao casar com a busca;
+        // o marcador contiguo real so existe la embaixo, antes do PowerShell.
+        $busca = "'#__PS' + '_INICIO__#'";
 
         $cmd  = "@echo off\r\n";
+        $cmd .= "setlocal EnableExtensions\r\n";
         $cmd .= "title Identificar Computador - GLPI\r\n";
         $cmd .= "net session >nul 2>&1\r\n";
         $cmd .= "if %errorlevel% NEQ 0 (\r\n";
@@ -113,9 +124,17 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
         $cmd .= "  powershell -NoProfile -Command \"Start-Process -Verb RunAs -FilePath '%~f0'\"\r\n";
         $cmd .= "  exit /b\r\n";
         $cmd .= ")\r\n";
-        $cmd .= "powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand " . $b64 . "\r\n";
+        $cmd .= "set \"ICSELF=%~f0\"\r\n";
+        $cmd .= "set \"ICPS=%TEMP%\\identificarcomputador_%RANDOM%.ps1\"\r\n";
+        // $ escapado (\$) para nao virar variavel do PHP; estes sao variaveis do PowerShell.
+        $cmd .= "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\$t=[IO.File]::ReadAllText(\$env:ICSELF);\$i=\$t.IndexOf(" . $busca . ");if(\$i -lt 0){exit 1};[IO.File]::WriteAllText(\$env:ICPS,\$t.Substring(\$i+" . $tam . "),(New-Object Text.UTF8Encoding \$true))\"\r\n";
+        $cmd .= "powershell -NoProfile -ExecutionPolicy Bypass -File \"%ICPS%\"\r\n";
+        $cmd .= "del \"%ICPS%\" >nul 2>&1\r\n";
         $cmd .= "echo.\r\n";
         $cmd .= "pause\r\n";
+        $cmd .= "exit /b\r\n";
+        $cmd .= $marcador . "\r\n";
+        $cmd .= $ps . "\r\n";
 
         return $cmd;
     }
