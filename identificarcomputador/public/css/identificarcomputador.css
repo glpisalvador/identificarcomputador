@@ -1,0 +1,165 @@
+/* Plugin Identificar Computador - visual proximo ao GLPI nativo, cores fracas e prefixadas */
+
+.identificarcomputador-painel { padding: 4px 2px; font-size: 12px; color: #333; }
+.identificarcomputador-config { max-width: 980px; margin: 0 auto; padding: 4px; }
+
+/* Topo */
+.identificarcomputador-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 10px; }
+.identificarcomputador-titulo { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #495057; }
+.identificarcomputador-acoes-topo { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Botoes */
+.identificarcomputador-btn,
+.identificarcomputador-btn-principal,
+.identificarcomputador-btn-salvar,
+.identificarcomputador-btn-perigo {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; font-size: 12px; border-radius: 4px; border: 1px solid #dee2e6;
+  background: #f8f9fa; color: #495057; cursor: pointer; text-decoration: none;
+}
+.identificarcomputador-btn:hover { background: #f0f0f0; }
+.identificarcomputador-btn-principal { background: #e5a54b; border-color: #e5a54b; color: #fff; font-weight: 600; }
+.identificarcomputador-btn-principal:hover { background: #d9972f; color: #fff; }
+.identificarcomputador-btn-salvar { background: #e5a54b; border-color: #e5a54b; color: #fff; font-weight: 600; }
+.identificarcomputador-btn-salvar:hover { background: #d9972f; }
+.identificarcomputador-btn-perigo { color: #dc3545; }
+.identificarcomputador-btn-perigo:hover { background: rgba(220,53,69,.08); border-color: rgba(220,53,69,.4); }
+
+.identificarcomputador-dica-baixar {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px;
+  padding: 8px 12px; font-size: 12px; border-radius: 4px;
+  background: rgba(13,202,240,.1); border: 1px solid rgba(13,202,240,.3); color: #055160;
+}
+
+/* Cartoes de resumo */
+.identificarcomputador-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.identificarcomputador-card-num {
+  background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px;
+}
+.identificarcomputador-card-num .n { font-size: 22px; font-weight: 600; color: #495057; }
+.identificarcomputador-card-num .t { font-size: 11px; color: #6c757d; display: flex; align-items: center; gap: 5px; }
+.identificarcomputador-card-num.alerta .n { color: #b02a37; }
+
+/* Graficos */
+.identificarcomputador-graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.identificarcomputador-grafico-cx { background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 8px 10px; }
+.identificarcomputador-grafico-tit { font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 4px; }
+.identificarcomputador-grafico { width: 100%; min-height: 60px; max-height: 190px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-top: 2px; }
+.identificarcomputador-barra { display: grid; grid-template-columns: 110px 1fr 34px; align-items: center; gap: 6px; }
+.identificarcomputador-barra-rot { font-size: 11px; color: #495057; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.identificarcomputador-barra-trilho { height: 12px; background: #eef1f4; border-radius: 6px; overflow: hidden; }
+.identificarcomputador-barra-fill { height: 100%; border-radius: 6px; min-width: 2px; transition: width .3s ease; }
+.identificarcomputador-barra-num { font-size: 11px; font-weight: 600; color: #6c757d; text-align: right; }
+
+/* Filtros */
+.identificarcomputador-filtros {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 18px;
+  background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;
+}
+.identificarcomputador-filtro { display: flex; flex-direction: column; gap: 4px; }
+.identificarcomputador-filtro > label { font-size: 11px; font-weight: 600; color: #6c757d; }
+.identificarcomputador-filtro input[type="text"],
+.identificarcomputador-filtro input[type="date"] { min-width: 150px; }
+.identificarcomputador-filtro-check { justify-content: center; }
+.identificarcomputador-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #495057; cursor: pointer; }
+
+/* Multiselect customizado dos filtros */
+.identificarcomputador-ms { position: relative; min-width: 160px; }
+.identificarcomputador-ms-cab {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 4px 8px; font-size: 12px; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; cursor: pointer;
+}
+.identificarcomputador-ms-cab .ph { color: #999; }
+.identificarcomputador-ms-drop {
+  position: absolute; z-index: 40; top: calc(100% + 2px); left: 0; right: 0;
+  background: #fff; border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  max-height: 260px; overflow: hidden; display: none;
+}
+.identificarcomputador-ms-drop.aberto { display: block; }
+.identificarcomputador-ms-busca { padding: 6px; border-bottom: 1px solid #f0f0f0; }
+.identificarcomputador-ms-busca input { width: 100%; }
+.identificarcomputador-ms-lista { max-height: 200px; overflow-y: auto; }
+.identificarcomputador-ms-op {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; font-size: 12px;
+  border-bottom: 1px solid #f0f0f0; cursor: pointer;
+}
+.identificarcomputador-ms-op:hover { background: #f8f9fa; }
+.identificarcomputador-ms-op.sel { background: #e8f4fc; }
+
+/* Tabela */
+.identificarcomputador-tabela-cx { overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 6px; background: #fff; }
+.identificarcomputador-tabela { width: 100%; border-collapse: collapse; font-size: 12px; }
+.identificarcomputador-tabela thead th {
+  font-size: 11px; font-weight: 400; color: #8b95a5; background: #fff;
+  text-align: left; padding: 8px 10px; border-bottom: 1px solid #e8e8e8; white-space: nowrap; cursor: pointer; user-select: none;
+}
+.identificarcomputador-tabela thead th.identificarcomputador-no-export { cursor: default; }
+.identificarcomputador-tabela tbody td { padding: 7px 10px; color: #333; border-bottom: 1px solid #f2f2f2; vertical-align: middle; }
+.identificarcomputador-tabela tbody tr:hover { background: #f8f9fa; }
+.identificarcomputador-tabela a { color: #2f3f64; font-weight: 500; text-decoration: none; }
+.identificarcomputador-tabela a:hover { text-decoration: underline; }
+.identificarcomputador-tabela th.sorted-asc::after { content: ' \25B2'; font-size: 9px; }
+.identificarcomputador-tabela th.sorted-desc::after { content: ' \25BC'; font-size: 9px; }
+
+.identificarcomputador-pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.identificarcomputador-pill.ok { background: rgba(25,135,84,.1); color: #198754; }
+.identificarcomputador-pill.warn { background: rgba(255,193,7,.15); color: #664d03; }
+.identificarcomputador-pill.off { background: rgba(108,117,125,.12); color: #6c757d; }
+.identificarcomputador-pill.remoto { background: rgba(220,53,69,.1); color: #b02a37; }
+
+.identificarcomputador-acoes-linha { display: inline-flex; gap: 4px; }
+.identificarcomputador-ico { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1px solid #dee2e6; border-radius: 4px; background: #f8f9fa; color: #495057; cursor: pointer; text-decoration: none; }
+.identificarcomputador-ico:hover { background: #f0f0f0; }
+.identificarcomputador-ico.perigo:hover { color: #dc3545; border-color: rgba(220,53,69,.4); }
+
+.identificarcomputador-vazio-lista { padding: 24px; text-align: center; color: #999; font-size: 13px; }
+.identificarcomputador-vazio { padding: 8px; color: #999; font-size: 12px; }
+
+.identificarcomputador-paginacao { display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+.identificarcomputador-paginacao button { min-width: 30px; padding: 3px 8px; font-size: 12px; border: 1px solid #dee2e6; background: #fff; border-radius: 4px; cursor: pointer; }
+.identificarcomputador-paginacao button.ativa { background: #ffc107; border-color: #e0b830; color: #333; font-weight: 600; }
+.identificarcomputador-paginacao button:disabled { color: #ccc; cursor: default; }
+
+/* Config */
+.identificarcomputador-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; overflow: visible; }
+.identificarcomputador-card-cab { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #495057; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f0f0f0; }
+.identificarcomputador-ajuda { font-size: 12px; color: #6c757d; display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.identificarcomputador-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .identificarcomputador-duas { grid-template-columns: 1fr; } }
+.identificarcomputador-rot { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 4px; }
+.identificarcomputador-campo { margin-bottom: 12px; }
+.identificarcomputador-rodape { margin-top: 10px; text-align: right; }
+
+.identificarcomputador-multi { border: 1px solid #dee2e6; border-radius: 4px; }
+.identificarcomputador-busca-perfil { border: 0; border-bottom: 1px solid #f0f0f0; border-radius: 4px 4px 0 0; }
+.identificarcomputador-perfis { max-height: 260px; overflow-y: auto; }
+.identificarcomputador-perfil { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-bottom: 1px solid #f0f0f0; font-size: 12px; cursor: pointer; }
+.identificarcomputador-perfil:hover { background: #f8f9fa; }
+
+/* Detalhe */
+.identificarcomputador-det-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.identificarcomputador-det-nome { font-size: 15px; font-weight: 600; color: #495057; display: inline-flex; align-items: center; gap: 8px; }
+.identificarcomputador-det-topo .identificarcomputador-btn-perigo { margin-left: auto; }
+.identificarcomputador-abas { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #dee2e6; margin-bottom: 12px; }
+.identificarcomputador-aba { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; color: #6c757d; background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer; }
+.identificarcomputador-aba:hover { background: #fff3cd; }
+.identificarcomputador-aba.ativa { color: #333; border-bottom-color: #ffc107; }
+.identificarcomputador-aba-corpo { display: none; }
+.identificarcomputador-aba-corpo.ativa { display: block; }
+.identificarcomputador-bloco-tit { font-size: 13px; font-weight: 600; color: #495057; margin: 14px 0 6px; }
+.identificarcomputador-subtit { font-size: 12px; font-weight: 600; color: #6c757d; margin: 10px 0 4px; }
+.identificarcomputador-kv { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; }
+.identificarcomputador-kv th { width: 200px; text-align: left; font-weight: 600; color: #6c757d; background: #f8f9fa; padding: 6px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+.identificarcomputador-kv td { padding: 6px 10px; color: #333; border-bottom: 1px solid #f0f0f0; word-break: break-word; }
+.identificarcomputador-tabela-det { border: 1px solid #e8e8e8; }
+.identificarcomputador-tabela-det thead th { cursor: default; }
+
+/* Toast e confirmacao */
+.identificarcomputador-toasts { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.identificarcomputador-toast { padding: 8px 14px; border-radius: 4px; font-size: 12px; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.identificarcomputador-toast.ok { background: #198754; }
+.identificarcomputador-toast.err { background: #dc3545; }
+.identificarcomputador-confirm-fundo { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 9998; display: flex; align-items: center; justify-content: center; }
+.identificarcomputador-confirm-cx { background: #fff; border-radius: 6px; padding: 18px 20px; max-width: 360px; box-shadow: 0 8px 28px rgba(0,0,0,.2); }
+.identificarcomputador-confirm-cx .msg { font-size: 13px; color: #333; margin-bottom: 14px; }
+.identificarcomputador-confirm-cx .acoes { display: flex; justify-content: flex-end; gap: 8px; }
