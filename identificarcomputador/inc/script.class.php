@@ -515,24 +515,27 @@ Write-Host ('   Conectado como ' + $hostNome + '. Canal ativo ate ' + $fimP.ToSt
 Write-Host '   Aguardando scripts enviados pelo GLPI...' -ForegroundColor Gray
 
 function Executar-Arquivo($dest, $formato) {
-    # Programa e argumentos conforme o formato
-    $exe = $env:ComSpec
-    $argsP = '/c "' + $dest + '"'
+    # Interpretador conforme o formato. Tudo roda via cmd com "chcp 65001" para a saida
+    # sair em UTF-8 e os acentos nao embaralharem.
+    $alvo = '"' + $dest + '"'
     switch ($formato) {
-        'ps1' { $exe = 'powershell.exe'; $argsP = '-NoProfile -ExecutionPolicy Bypass -File "' + $dest + '"' }
-        'py'  { $exe = 'python.exe';     $argsP = '"' + $dest + '"' }
-        'vbs' { $exe = 'cscript.exe';    $argsP = '//nologo "' + $dest + '"' }
-        'js'  { $exe = 'cscript.exe';    $argsP = '//nologo //E:jscript "' + $dest + '"' }
+        'ps1' { $alvo = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' + $dest + '"' }
+        'py'  { $alvo = 'python "' + $dest + '"' }
+        'vbs' { $alvo = 'cscript //nologo "' + $dest + '"' }
+        'js'  { $alvo = 'cscript //nologo //E:jscript "' + $dest + '"' }
     }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $exe
-    $psi.Arguments = $argsP
+    $psi.FileName = $env:ComSpec
+    $psi.Arguments = '/c chcp 65001>nul & ' + $alvo
     $psi.UseShellExecute = $false
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
     $psi.RedirectStandardInput = $true
     $psi.CreateNoWindow = $true
     $psi.WorkingDirectory = $env:TEMP
+    $psi.StandardOutputEncoding = New-Object System.Text.UTF8Encoding $false
+    $psi.StandardErrorEncoding = New-Object System.Text.UTF8Encoding $false
+    try { $psi.EnvironmentVariables['PYTHONIOENCODING'] = 'utf-8' } catch {}
     $p = [System.Diagnostics.Process]::Start($psi)
     $p.StandardInput.Close()   # EOF: evita travar em 'pause' ou leitura de teclado
     $tOut = $p.StandardOutput.ReadToEndAsync()
