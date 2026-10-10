@@ -2,6 +2,12 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.1.1 — 2026-10-10
+
+Suporte ao tema escuro do GLPI.
+
+- Todas as telas do plugin (painel, detalhe, execução remota, configuração) agora têm cores próprias para os temas escuros do GLPI (Auror dark e demais), com fundos, bordas, textos, tabelas, gráficos e campos legíveis no escuro, mantendo o tema claro como estava.
+
 ## 1.1.0 — 2026-10-05
 
 Ponte de execução remota (temporária) e página de logs.
