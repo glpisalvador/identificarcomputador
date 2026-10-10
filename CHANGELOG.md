@@ -2,6 +2,13 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.2.1 — 2026-10-10
+
+Correção de acentos na saída dos scripts.
+
+- A saída dos scripts executados agora sai em UTF-8 (chcp 65001 + captura UTF-8), então acentos e cedilha aparecem corretos no log, em vez de caracteres embaralhados.
+- Vale para .bat, .cmd, .ps1, .py, .vbs e .js. Para .ps1 com acentos, salve o arquivo em UTF-8.
+
 ## 1.2.0 — 2026-10-10
 
 Duas abas, dois scripts e correção da execução remota.
