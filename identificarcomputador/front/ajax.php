@@ -130,6 +130,27 @@ switch ($action) {
         $responder(['success' => $ok, 'message' => $ok ? 'Computador removido.' : 'Falha ao remover.']);
         break;
 
+    case 'enviar_itil':
+        Session::checkCSRF($_POST);
+        $id    = (int) ($_POST['id'] ?? 0);
+        $tipo  = (string) ($_POST['tipo'] ?? '');
+        $itemId = (int) ($_POST['item_id'] ?? 0);
+        if ($id <= 0 || $itemId <= 0) {
+            $responder(['success' => false, 'message' => 'Informe o número do item.']);
+        }
+        $responder($Comp::enviarParaItil($id, $tipo, $itemId));
+        break;
+
+    case 'converter_ativo':
+        Session::checkCSRF($_POST);
+        $id  = (int) ($_POST['id'] ?? 0);
+        $ent = (int) ($_POST['entidade'] ?? -1);
+        if ($id <= 0 || $ent < 0) {
+            $responder(['success' => false, 'message' => 'Selecione a entidade.']);
+        }
+        $responder($Comp::converterParaAtivo($id, $ent));
+        break;
+
     default:
         $responder(['success' => false, 'message' => 'Ação desconhecida.']);
 }

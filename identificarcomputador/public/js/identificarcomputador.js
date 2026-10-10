@@ -33,6 +33,23 @@
             if (e.target.getAttribute('data-c') === 'sim') { fundo.remove(); aoConfirmar(); }
         });
     }
+    // Modal com formulario; aoConfirmar(fundo, fechar) le os campos e decide quando fechar.
+    function modal(titulo, corpoHtml, textoOk, aoConfirmar) {
+        var fundo = document.createElement('div');
+        fundo.className = 'identificarcomputador-confirm-fundo';
+        fundo.innerHTML = '<div class="identificarcomputador-confirm-cx identificarcomputador-modal-cx">'
+            + '<div class="identificarcomputador-modal-tit">' + esc(titulo) + '</div>'
+            + '<div class="identificarcomputador-modal-corpo">' + corpoHtml + '</div>'
+            + '<div class="acoes"><button type="button" class="btn identificarcomputador-btn" data-c="nao">Cancelar</button>'
+            + '<button type="button" class="btn identificarcomputador-btn-salvar" data-c="sim">' + esc(textoOk) + '</button></div></div>';
+        document.body.appendChild(fundo);
+        var fechar = function () { fundo.remove(); };
+        fundo.addEventListener('click', function (e) {
+            if (e.target === fundo || e.target.getAttribute('data-c') === 'nao') { fechar(); }
+            if (e.target.getAttribute('data-c') === 'sim') { aoConfirmar(fundo, fechar); }
+        });
+        return fundo;
+    }
     function ajax(dados) {
         var corpo = new URLSearchParams();
         Object.keys(dados).forEach(function (k) {
@@ -135,6 +152,54 @@
                 });
             });
         });
+
+        // Enviar resumo para chamado / problema / mudanca
+        var bItil = document.getElementById('ic-enviar-itil');
+        if (bItil) {
+            bItil.addEventListener('click', function () {
+                var corpo = '<label class="identificarcomputador-modal-lb">Tipo de item</label>'
+                    + '<select id="ic-m-tipo" class="form-control form-control-sm"><option value="Ticket">Chamado</option><option value="Problem">Problema</option><option value="Change">Mudança</option></select>'
+                    + '<label class="identificarcomputador-modal-lb">Número do item</label>'
+                    + '<input type="number" id="ic-m-id" class="form-control form-control-sm" min="1" placeholder="Ex.: 1234">'
+                    + '<p class="identificarcomputador-ajuda">Um acompanhamento com o resumo deste computador será adicionado ao item informado.</p>';
+                modal('Enviar resumo para um item', corpo, 'Enviar', function (fundo, fechar) {
+                    var tipo = (fundo.querySelector('#ic-m-tipo') || {}).value || 'Ticket';
+                    var itemId = parseInt((fundo.querySelector('#ic-m-id') || {}).value, 10);
+                    if (!itemId || itemId < 1) { toast('Informe o número do item.', false); return; }
+                    var ok = fundo.querySelector('[data-c="sim"]'); if (ok) { ok.disabled = true; }
+                    ajax({ action: 'enviar_itil', id: CFG.computador_id, tipo: tipo, item_id: itemId, _glpi_csrf_token: csrf }).then(function (r) {
+                        toast(r.message || (r.success ? 'Enviado.' : 'Falha.'), !!r.success);
+                        if (r.success) { fechar(); } else if (ok) { ok.disabled = false; }
+                    });
+                });
+            });
+        }
+
+        // Converter o registro do plugin num ativo (Computer) nativo do GLPI
+        var bConv = document.getElementById('ic-converter-ativo');
+        if (bConv) {
+            bConv.addEventListener('click', function () {
+                var opts = (CFG.entidades || []).map(function (en) { return '<option value="' + en.id + '">' + esc(en.nome) + '</option>'; }).join('');
+                if (!opts) { opts = '<option value="0">Entidade raiz</option>'; }
+                var corpo = '<label class="identificarcomputador-modal-lb">Entidade de destino</label>'
+                    + '<select id="ic-m-ent" class="form-control form-control-sm">' + opts + '</select>'
+                    + '<p class="identificarcomputador-ajuda">Será criado um computador nos ativos do GLPI (Ativos &gt; Computadores) com os dados correspondentes já coletados.</p>';
+                modal('Converter em ativo do GLPI', corpo, 'Converter', function (fundo, fechar) {
+                    var ent = (fundo.querySelector('#ic-m-ent') || {}).value;
+                    var ok = fundo.querySelector('[data-c="sim"]'); if (ok) { ok.disabled = true; }
+                    ajax({ action: 'converter_ativo', id: CFG.computador_id, entidade: ent, _glpi_csrf_token: csrf }).then(function (r) {
+                        toast(r.message || (r.success ? 'Criado.' : 'Falha.'), !!r.success);
+                        if (r.success) {
+                            var corpoOk = '<p>' + esc(r.message || 'Computador criado nos ativos.') + '</p>';
+                            if (r.url) { corpoOk += '<p><a class="btn identificarcomputador-btn" href="' + esc(r.url) + '"><i class="ti ti-external-link"></i> Abrir computador nos ativos</a></p>'; }
+                            fundo.querySelector('.identificarcomputador-modal-corpo').innerHTML = corpoOk;
+                            if (ok) { ok.style.display = 'none'; }
+                            var nao = fundo.querySelector('[data-c="nao"]'); if (nao) { nao.textContent = 'Fechar'; }
+                        } else if (ok) { ok.disabled = false; }
+                    });
+                });
+            });
+        }
     }
 
     // ----------------------------------------------------------------- painel

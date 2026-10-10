@@ -139,7 +139,7 @@
 /* Detalhe */
 .identificarcomputador-det-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .identificarcomputador-det-nome { font-size: 15px; font-weight: 600; color: #495057; display: inline-flex; align-items: center; gap: 8px; }
-.identificarcomputador-det-topo .identificarcomputador-btn-perigo { margin-left: auto; }
+.identificarcomputador-det-acoes { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .identificarcomputador-abas { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #dee2e6; margin-bottom: 12px; }
 .identificarcomputador-aba { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; color: #6c757d; background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer; }
 .identificarcomputador-aba:hover { background: #fff3cd; }
@@ -163,6 +163,12 @@
 .identificarcomputador-confirm-cx { background: #fff; border-radius: 6px; padding: 18px 20px; max-width: 360px; box-shadow: 0 8px 28px rgba(0,0,0,.2); }
 .identificarcomputador-confirm-cx .msg { font-size: 13px; color: #333; margin-bottom: 14px; }
 .identificarcomputador-confirm-cx .acoes { display: flex; justify-content: flex-end; gap: 8px; }
+.identificarcomputador-modal-cx { max-width: 440px; width: 440px; }
+.identificarcomputador-modal-tit { font-size: 14px; font-weight: 600; color: #495057; margin-bottom: 12px; }
+.identificarcomputador-modal-corpo { margin-bottom: 14px; }
+.identificarcomputador-modal-lb { display: block; font-size: 12px; font-weight: 600; color: #6c757d; margin: 10px 0 4px; }
+.identificarcomputador-modal-corpo .form-control { width: 100%; }
+.identificarcomputador-modal-corpo p { margin: 10px 0 0; }
 
 /* Detalhe: busca por tabela + ordenacao + visual moderno (1.0.2) */
 .identificarcomputador-detalhe { max-width: 100%; }
@@ -336,7 +342,11 @@ html[data-glpi-theme-dark="1"] .ext-vbs, html[data-glpi-theme-dark="1"] .ext-js 
 /* Confirmacao / modal de saida */
 html[data-glpi-theme-dark="1"] .identificarcomputador-confirm-cx { background: #2a2d33; color: #dfe2e6; }
 html[data-glpi-theme-dark="1"] .identificarcomputador-confirm-cx .msg,
+html[data-glpi-theme-dark="1"] .identificarcomputador-modal-tit,
+html[data-glpi-theme-dark="1"] .identificarcomputador-modal-lb,
+html[data-glpi-theme-dark="1"] .identificarcomputador-modal-corpo p,
 html[data-glpi-theme-dark="1"] .identificarcomputador-saida-cx .cab { color: #dfe2e6; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-modal-corpo .form-control { background: #33373e; color: #dfe2e6; border-color: #3a3f46; }
 
 /* Paginacao desabilitada */
 html[data-glpi-theme-dark="1"] .identificarcomputador-paginacao button:disabled { color: #5a606a; }

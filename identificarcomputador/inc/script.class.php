@@ -189,7 +189,7 @@ Linha 'Nenhuma alteracao e feita na maquina.'
 
 $d = [ordered]@{}
 $d.coletado_em = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-$d.script_versao = '1.0.0'
+$d.script_versao = '1.4.0'
 
 Secao 'Identificacao'
 try {
@@ -207,6 +207,14 @@ try {
     $d.so_versao      = $os.Version
     $d.so_build       = $os.BuildNumber
     $d.so_arquitetura = $os.OSArchitecture
+    # Build completo (com UBR = revisao do patch) e nome da versao (ex 23H2)
+    try {
+        $rk = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        $cv = Get-ItemProperty -Path $rk -ErrorAction Stop
+        $ubr = [string]$cv.UBR
+        $d.so_build_completo = if ($ubr) { ([string]$os.BuildNumber) + '.' + $ubr } else { [string]$os.BuildNumber }
+        $d.so_release = if ($cv.DisplayVersion) { [string]$cv.DisplayVersion } elseif ($cv.ReleaseId) { [string]$cv.ReleaseId } else { '' }
+    } catch { $d.so_build_completo = [string]$os.BuildNumber; $d.so_release = '' }
     $d.instalado_em   = ($os.InstallDate).ToString('yyyy-MM-dd')
     $d.ultimo_boot    = ($os.LastBootUpTime).ToString('yyyy-MM-dd HH:mm:ss')
     $d.uptime_horas   = [math]::Round(((Get-Date) - $os.LastBootUpTime).TotalHours, 1)
@@ -244,10 +252,15 @@ try {
     $d.ram_total_gb = [math]::Round($cs2.TotalPhysicalMemory / 1GB, 1)
     $pentes = @()
     foreach ($m in Get-CimInstance Win32_PhysicalMemory) {
-        $pentes += [ordered]@{ fabricante = $m.Manufacturer; modelo = $m.PartNumber.Trim(); serial = $m.SerialNumber; capacidade_gb = [math]::Round($m.Capacity / 1GB, 1); velocidade_mhz = $m.Speed; slot = $m.DeviceLocator }
+        $tipo = switch ([int]$m.SMBIOSMemoryType) { 20 {'DDR'} 21 {'DDR2'} 24 {'DDR3'} 26 {'DDR4'} 34 {'DDR5'} default { switch ([int]$m.MemoryType) { 20 {'DDR'} 21 {'DDR2'} 24 {'DDR3'} 26 {'DDR4'} default {''} } } }
+        $barr = if ($m.ConfiguredClockSpeed) { [int]$m.ConfiguredClockSpeed } else { [int]$m.Speed }
+        $pentes += [ordered]@{ fabricante = ([string]$m.Manufacturer).Trim(); modelo = ([string]$m.PartNumber).Trim(); serial = ([string]$m.SerialNumber).Trim(); capacidade_gb = [math]::Round($m.Capacity / 1GB, 1); velocidade_mhz = [int]$m.Speed; barramento_mhz = $barr; tipo = $tipo; slot = [string]$m.DeviceLocator }
     }
     $d.memoria = $pentes
-    Linha ([string]$d.ram_total_gb + ' GB em ' + $pentes.Count + ' pente(s)')
+    $d.ram_slots_usados = $pentes.Count
+    try { $d.ram_slots_total = [int]((Get-CimInstance Win32_PhysicalMemoryArray | Measure-Object -Property MemoryDevices -Sum).Sum) } catch { $d.ram_slots_total = $pentes.Count }
+    if (-not $d.ram_slots_total -or $d.ram_slots_total -lt $pentes.Count) { $d.ram_slots_total = $pentes.Count }
+    Linha ([string]$d.ram_total_gb + ' GB em ' + $pentes.Count + ' de ' + $d.ram_slots_total + ' slot(s)')
 } catch {}
 
 Secao 'Armazenamento'
@@ -271,21 +284,81 @@ try {
 } catch {}
 
 Secao 'Video, som e perifericos'
-try { $d.placas_video = @(Get-CimInstance Win32_VideoController | ForEach-Object { [ordered]@{ nome = $_.Name; memoria_mb = [math]::Round($_.AdapterRAM / 1MB, 0); driver = $_.DriverVersion; resolucao = ("$($_.CurrentHorizontalResolution)x$($_.CurrentVerticalResolution)") } }) } catch {}
+try {
+    # VRAM real pelo registro (AdapterRAM do WMI estoura em placas com mais de 4 GB)
+    $vram = @{}
+    try {
+        foreach ($sub in Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}' -ErrorAction SilentlyContinue) {
+            try {
+                $p = Get-ItemProperty $sub.PSPath -ErrorAction SilentlyContinue
+                $raw = $p.'HardwareInformation.qwMemorySize'
+                if (-not $raw) { $raw = $p.'HardwareInformation.MemorySize' }
+                if ($p.DriverDesc -and $raw) {
+                    $val = 0
+                    if ($raw -is [byte[]]) { if ($raw.Length -ge 8) { $val = [System.BitConverter]::ToInt64($raw, 0) } elseif ($raw.Length -ge 4) { $val = [System.BitConverter]::ToUInt32($raw, 0) } }
+                    else { try { $val = [int64]$raw } catch { $val = 0 } }
+                    if ($val -gt 0) { $vram[[string]$p.DriverDesc] = [int64]$val }
+                }
+            } catch {}
+        }
+    } catch {}
+    $vramMax = 0
+    foreach ($kv2 in $vram.Values) { if ($kv2 -gt $vramMax) { $vramMax = [int64]$kv2 } }
+    $placas = @()
+    foreach ($g in Get-CimInstance Win32_VideoController) {
+        $bytes = [int64]$g.AdapterRAM
+        if ($vram.ContainsKey([string]$g.Name) -and $vram[[string]$g.Name] -gt $bytes) { $bytes = $vram[[string]$g.Name] }
+        elseif ($bytes -le 4294967296 -and $vramMax -gt $bytes) { $bytes = $vramMax }
+        $gb = if ($bytes -gt 0) { [math]::Round($bytes / 1GB, 1) } else { 0 }
+        # O Windows raramente informa o tipo GDDR real; mostra so quando for um tipo especifico (nao o generico DRAM/VRAM)
+        $tipoMem = switch ([int]$g.VideoMemoryType) { 4 {'SRAM'} 5 {'WRAM'} 6 {'EDO RAM'} 7 {'Burst Synchronous DRAM'} 8 {'Pipelined Burst SRAM'} 9 {'CDRAM'} 10 {'3DRAM'} 11 {'SDRAM'} 12 {'SGRAM'} default {''} }
+        $placas += [ordered]@{ nome = $g.Name; memoria_mb = if ($bytes -gt 0) { [math]::Round($bytes / 1MB, 0) } else { 0 }; memoria_gb = $gb; tipo_memoria = $tipoMem; driver = $g.DriverVersion; resolucao = ("$($g.CurrentHorizontalResolution)x$($g.CurrentVerticalResolution)"); refresh_hz = [int]$g.CurrentRefreshRate }
+    }
+    $d.placas_video = $placas
+} catch {}
 try { if ($d.placas_video.Count -gt 0) { $d.placa_video = ($d.placas_video | ForEach-Object { $_.nome }) -join '; ' } } catch {}
-try { $d.placas_som = @(Get-CimInstance Win32_SoundDevice | ForEach-Object { $_.Name }) } catch {}
+try {
+    # Placa de som real (descarta audio de video/virtual tipo NVIDIA/AMD HDMI, Steam, etc.)
+    $som = @()
+    foreach ($s in Get-CimInstance Win32_SoundDevice) {
+        $n = [string]$s.Name
+        if ($n -match 'NVIDIA|AMD High Definition Audio|Virtual|Steam|Display Audio|Monitor|HDMI|VoiceMeeter|Cable|Remote Audio') { continue }
+        $som += $n
+    }
+    if ($som.Count -eq 0) { $som = @(Get-CimInstance Win32_SoundDevice | ForEach-Object { [string]$_.Name }) }
+    $d.placas_som = @($som | Select-Object -Unique)
+} catch {}
 try { $d.teclados = @(Get-CimInstance Win32_Keyboard | ForEach-Object { $_.Description }) } catch {}
 try { $d.mouses = @(Get-CimInstance Win32_PointingDevice | ForEach-Object { $_.Description } | Where-Object { $_ }) } catch {}
 try { $d.impressoras = @(Get-CimInstance Win32_Printer | ForEach-Object { [ordered]@{ nome = $_.Name; porta = $_.PortName; padrao = $_.Default; compartilhada = $_.Shared } }) } catch {}
 try {
+    # Tipo de conexao (cabo de video) por monitor, via WmiMonitorConnectionParams
+    function CaboVideo($vot) {
+        switch ([int]$vot) {
+            0 {'VGA'} 1 {'S-Video'} 2 {'Composite'} 3 {'Component'} 4 {'DVI'} 5 {'HDMI'} 6 {'LVDS'} 8 {'D-Japan'} 9 {'SDI'}
+            10 {'DisplayPort'} 11 {'DisplayPort'} 12 {'UDI'} 13 {'UDI'} 14 {'SDTV'} 15 {'Miracast'} 2147483648 {'Interno (notebook)'} default {''}
+        }
+    }
+    $cabos = @()
+    try { $cabos = @(Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorConnectionParams -ErrorAction Stop) } catch {}
     $monitores = @()
+    $i = 0
     foreach ($mon in Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorID) {
         $fab = -join ($mon.ManufacturerName | Where-Object { $_ -gt 0 } | ForEach-Object { [char]$_ })
         $nome = -join ($mon.UserFriendlyName | Where-Object { $_ -gt 0 } | ForEach-Object { [char]$_ })
         $ser = -join ($mon.SerialNumberID | Where-Object { $_ -gt 0 } | ForEach-Object { [char]$_ })
-        $monitores += [ordered]@{ fabricante = $fab; modelo = $nome; serial = $ser; ano = $mon.YearOfManufacture }
+        $cabo = ''
+        try { $cp = $cabos | Where-Object { $_.InstanceName -eq $mon.InstanceName } | Select-Object -First 1; if ($cp) { $cabo = CaboVideo $cp.VideoOutputTechnology } } catch {}
+        $monitores += [ordered]@{ fabricante = $fab; modelo = $nome; serial = $ser; ano = $mon.YearOfManufacture; cabo = $cabo }
+        $i++
     }
     $d.monitores = $monitores
+    $d.monitores_total = $monitores.Count
+    # Resolucao e refresh do adaptador de video principal (o que esta exibindo)
+    try {
+        $gp = Get-CimInstance Win32_VideoController | Where-Object { $_.CurrentHorizontalResolution } | Select-Object -First 1
+        if ($gp) { $d.resolucao_atual = "$($gp.CurrentHorizontalResolution)x$($gp.CurrentVerticalResolution)"; $d.refresh_atual_hz = [int]$gp.CurrentRefreshRate }
+    } catch {}
 } catch {}
 try { $d.scanners = @(Get-CimInstance Win32_PnPEntity -Filter "PNPClass='Image'" | ForEach-Object { $_.Name } | Where-Object { $_ }) } catch {}
 try { $d.usb = @(Get-PnpDevice -PresentOnly -Class USB -Status OK | Select-Object -ExpandProperty FriendlyName -Unique | Where-Object { $_ }) } catch {}
@@ -319,6 +392,20 @@ try {
         $d.placa_rede_principal = $prim.InterfaceDescription
         $d.ip_principal  = ($prim.IPv4Address | Select-Object -First 1).IPAddress
         $d.mac_principal = $prim.NetAdapter.MacAddress
+        $na = $prim.NetAdapter
+        # Conexao: cabo ou WiFi
+        $desc = [string]$na.InterfaceDescription
+        $d.conexao_principal = if ($desc -match 'wi-?fi|wireless|802\.11') { 'WiFi' } else { 'Cabeada' }
+        # Capacidade do link (atual). >=1 Gbps => 10/100/1000, >=100 Mbps => 10/100
+        try {
+            $bps = [int64]$na.Speed
+            $d.rede_velocidade_atual = [string]$na.LinkSpeed
+            if ($d.conexao_principal -eq 'WiFi') { $d.rede_capacidade = 'Wireless' }
+            elseif ($bps -ge 1000000000) { $d.rede_capacidade = '10/100/1000' }
+            elseif ($bps -ge 100000000) { $d.rede_capacidade = '10/100' }
+            elseif ($bps -ge 10000000) { $d.rede_capacidade = '10' }
+            else { $d.rede_capacidade = '' }
+        } catch {}
     }
     $d.placa_rede = (($d.adaptadores_rede | Where-Object { $_.mac -and $_.status -eq 'Up' } | ForEach-Object { $_.descricao }) -join '; ')
 } catch {}
@@ -462,26 +549,72 @@ try {
             4 { 'Carencia - nao genuino' } 5 { 'Notificacao (nao ativado)' } 6 { 'Carencia estendida' } default { "Status $st" }
         }
     }
+    # Decodifica a chave do produto a partir do DigitalProductId do registro
+    function DecodeChave($dpid) {
+        try {
+            $keyOffset = 52
+            $isWin8 = [int](($dpid[66] / 6) -band 1)
+            $dpid[66] = ($dpid[66] -band 0xf7) -bor (($isWin8 -band 2) * 4)
+            $chars = 'BCDFGHJKMPQRTVWXY2346789'
+            $last = 0
+            $key = ''
+            for ($i = 24; $i -ge 0; $i--) {
+                $cur = 0
+                for ($j = 14; $j -ge 0; $j--) {
+                    $cur = $cur * 256
+                    $cur = $dpid[$j + $keyOffset] + $cur
+                    $dpid[$j + $keyOffset] = [math]::Floor([double]($cur / 24))
+                    $cur = $cur % 24
+                    $last = $cur
+                }
+                $key = $chars[$cur] + $key
+            }
+            if ($isWin8 -eq 1) {
+                $kp1 = $key.Substring(1, $last)
+                $kp2 = $key.Substring(1, $key.Length - 1)
+                if ($last -eq 0) { $key = 'N' + $kp2 } else { $key = $kp2.Insert($kp2.IndexOf($kp1) + $kp1.Length, 'N') }
+            }
+            if ($key.Length -lt 25) { return '' }
+            return ($key.Substring(0,5) + '-' + $key.Substring(5,5) + '-' + $key.Substring(10,5) + '-' + $key.Substring(15,5) + '-' + $key.Substring(20,5))
+        } catch { return '' }
+    }
     $pod = [bool]$d.parte_de_dominio
     $lic = [ordered]@{}
+    # Chave OEM gravada na BIOS (maquinas de fabrica) e chave instalada (registro)
+    $chaveOem = ''
+    try { $chaveOem = [string](Get-CimInstance SoftwareLicensingService).OA3xOriginalProductKey } catch {}
+    $chaveInst = ''
+    try {
+        $dp = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name DigitalProductId -ErrorAction Stop).DigitalProductId
+        if ($dp) { $chaveInst = DecodeChave ([byte[]]$dp) }
+    } catch {}
     # Windows (ApplicationID do Windows)
     $win = Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object -First 1
     if ($win) {
         $stw = [int]$win.LicenseStatus
         $canalw = [string]$win.ProductKeyChannel
         $avalw = AvaliarLic $stw $canalw $pod
+        $chaveMostrar = if ($chaveOem) { $chaveOem } elseif ($chaveInst) { $chaveInst } else { '' }
         $lic.windows = [ordered]@{
             edicao        = $d.so
             status        = StatusLic $stw
             canal         = $canalw
+            chave_produto = $chaveMostrar
+            chave_oem     = $chaveOem
+            chave_instalada = $chaveInst
             chave_parcial = [string]$win.PartialProductKey
             descricao     = [string]$win.Description
             avaliacao     = $avalw
+            oem_na_bios   = if ($chaveOem) { 'Sim' } else { 'Nao' }
         }
-        try { $oem = (Get-CimInstance SoftwareLicensingService).OA3xOriginalProductKey; $lic.windows.oem_na_bios = if ($oem) { 'Sim' } else { 'Nao' } } catch {}
         $d.windows_licenca = $avalw
     } else {
         $d.windows_licenca = 'Nao identificada'
+        if ($chaveOem -or $chaveInst) {
+            $cm = if ($chaveOem) { $chaveOem } else { $chaveInst }
+            $ob = if ($chaveOem) { 'Sim' } else { 'Nao' }
+            $lic.windows = [ordered]@{ edicao = $d.so; status = 'Nao ativado'; canal = ''; chave_produto = $cm; chave_oem = $chaveOem; chave_instalada = $chaveInst; chave_parcial = ''; descricao = ''; avaliacao = 'Nao ativado'; oem_na_bios = $ob }
+        }
     }
     # Office (ApplicationID do Office)
     $offs = @()

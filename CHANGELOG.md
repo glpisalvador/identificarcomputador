@@ -2,6 +2,10 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.4.0 — 2026-10-10
+
+1.4.0: resumo com chave da licenca do Windows, socket da CPU, slots/tipo/barramento da RAM, GB de memoria de video, unidades de armazenamento, capacidade da rede (10/100/1000) e cabo/WiFi, antivirus, build do Windows, placa de som filtrada; nova area de Monitores (quantidade, resolucao, Hz, cabo de video) e de IDs de acesso remoto; botao Enviar resumo para chamado/problema/mudanca (acompanhamento) e botao Converter em ativo nativo do GLPI (computador com SO, componentes e MAC na entidade escolhida).
+
 ## 1.3.0 — 2026-10-10
 
 Licença do Windows e do Office no inventário.
