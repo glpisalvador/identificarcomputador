@@ -219,3 +219,124 @@
 .identificarcomputador-saida-cx { max-width: 760px; width: 90vw; }
 .identificarcomputador-saida-cx .cab { font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 .identificarcomputador-saida-cx .out { border: 1px solid #e8e8e8; border-radius: 4px; }
+
+/* ============================================================
+   Tema escuro do GLPI (Auror dark e demais temas escuros)
+   Ativado por html[data-glpi-theme-dark="1"] no elemento html.
+   ============================================================ */
+html[data-glpi-theme-dark="1"] .identificarcomputador-painel,
+html[data-glpi-theme-dark="1"] .identificarcomputador-config { color: #dfe2e6; }
+
+html[data-glpi-theme-dark="1"] .identificarcomputador-titulo,
+html[data-glpi-theme-dark="1"] .identificarcomputador-card-cab,
+html[data-glpi-theme-dark="1"] .identificarcomputador-rot,
+html[data-glpi-theme-dark="1"] .identificarcomputador-det-nome,
+html[data-glpi-theme-dark="1"] .identificarcomputador-bloco-tit,
+html[data-glpi-theme-dark="1"] .identificarcomputador-grafico-tit,
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-sub,
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-cab { color: #e8eaed; }
+
+/* Superficies brancas/claras -> escuras */
+html[data-glpi-theme-dark="1"] .identificarcomputador-card,
+html[data-glpi-theme-dark="1"] .identificarcomputador-card-num,
+html[data-glpi-theme-dark="1"] .identificarcomputador-grafico-cx,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela-cx,
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-maq,
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-painel,
+html[data-glpi-theme-dark="1"] .identificarcomputador-multi,
+html[data-glpi-theme-dark="1"] .identificarcomputador-kv,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela-det,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-cab,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-drop { background: #2a2d33; border-color: #3a3f46; }
+
+/* Fundos sutis (f8f9fa / fafbfc) -> cinza escuro */
+html[data-glpi-theme-dark="1"] .identificarcomputador-filtros,
+html[data-glpi-theme-dark="1"] .identificarcomputador-btn,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ico,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tbl-busca,
+html[data-glpi-theme-dark="1"] .identificarcomputador-paginacao button,
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-upl { background: #33373e; border-color: #3a3f46; color: #dfe2e6; }
+
+/* Tabelas */
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela { color: #dfe2e6; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela thead th,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela-det thead th { background: #33373e; color: #9aa3af; border-bottom-color: #3a3f46; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela tbody td { color: #dfe2e6; border-bottom-color: #353a41; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela tbody tr:hover,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela-det tbody tr:nth-child(even),
+html[data-glpi-theme-dark="1"] .identificarcomputador-perfil:hover,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-op:hover,
+html[data-glpi-theme-dark="1"] .identificarcomputador-btn:hover,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ico:hover { background: #343841; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela a,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela-det a { color: #8ab4f8; }
+
+/* Chave/valor e blocos do detalhe */
+html[data-glpi-theme-dark="1"] .identificarcomputador-kv th { background: #33373e; color: #9aa3af; border-bottom-color: #353a41; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-kv td { color: #dfe2e6; border-bottom-color: #353a41; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-subtit { color: #b7bdc6; }
+
+/* Numeros e textos auxiliares */
+html[data-glpi-theme-dark="1"] .identificarcomputador-card-num .n { color: #e8eaed; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-card-num.alerta .n { color: #ff8a93; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-card-num .t,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tbl-cont,
+html[data-glpi-theme-dark="1"] .identificarcomputador-vazio,
+html[data-glpi-theme-dark="1"] .identificarcomputador-vazio-lista,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ajuda,
+html[data-glpi-theme-dark="1"] .identificarcomputador-filtro > label,
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-arq .tm { color: #9aa3af; }
+
+/* Abas (detalhe e execucao) */
+html[data-glpi-theme-dark="1"] .identificarcomputador-abas { border-bottom-color: #3a3f46; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-aba { color: #9aa3af; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-aba:hover { background: #3a3320; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-aba.ativa { color: #ffd77a; border-bottom-color: #e5a54b; }
+
+/* Campos de busca sem fundo proprio */
+html[data-glpi-theme-dark="1"] .identificarcomputador-tbl-busca input,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-busca input { color: #dfe2e6; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-busca { border-bottom-color: #3a3f46; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-cab .ph,
+html[data-glpi-theme-dark="1"] .identificarcomputador-tbl-busca i { color: #7a828c; }
+
+/* Perfis (config) e multiselect itens */
+html[data-glpi-theme-dark="1"] .identificarcomputador-perfil,
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-op { border-bottom-color: #353a41; color: #dfe2e6; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-busca-perfil { border-bottom-color: #3a3f46; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-ms-op.sel { background: rgba(91,155,213,.22); }
+
+/* Selecionados / destaque */
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-maq.sel { background: rgba(91,155,213,.18); border-color: #5b9bd5; }
+
+/* Cabecalho ordenavel das tabelas do detalhe */
+html[data-glpi-theme-dark="1"] .identificarcomputador-tabela-det thead th.identificarcomputador-th-sort:hover { background: #3a3320; }
+
+/* Execucao: upload, arquivos, saida */
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-upl.arrastando { background: rgba(91,155,213,.18); border-color: #5b9bd5; color: #e8eaed; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-arq { border-color: #353a41; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-arq .nm { color: #dfe2e6; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-prog .barra { background: #3a3f46; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-saida { border-color: #3a3f46; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-saida .cab { background: #33373e; border-bottom-color: #3a3f46; color: #dfe2e6; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-exec-saida .out,
+html[data-glpi-theme-dark="1"] .identificarcomputador-saida-cx .out { background: #1e2024; color: #d7dadf; border-color: #3a3f46; }
+
+/* Barras dos graficos */
+html[data-glpi-theme-dark="1"] .identificarcomputador-barra-rot { color: #c5c9d1; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-barra-trilho { background: #3a3f46; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-barra-num { color: #9aa3af; }
+
+/* Badges de extensao (fundo claro) -> tons escuros translucidos */
+html[data-glpi-theme-dark="1"] .ext { background: #3a3f46; color: #c5c9d1; }
+html[data-glpi-theme-dark="1"] .ext-ps1 { background: rgba(59,130,246,.25); color: #9ec1ff; }
+html[data-glpi-theme-dark="1"] .ext-py { background: rgba(234,179,8,.22); color: #f2d07a; }
+html[data-glpi-theme-dark="1"] .ext-vbs, html[data-glpi-theme-dark="1"] .ext-js { background: rgba(217,70,239,.20); color: #e9a6f2; }
+
+/* Confirmacao / modal de saida */
+html[data-glpi-theme-dark="1"] .identificarcomputador-confirm-cx { background: #2a2d33; color: #dfe2e6; }
+html[data-glpi-theme-dark="1"] .identificarcomputador-confirm-cx .msg,
+html[data-glpi-theme-dark="1"] .identificarcomputador-saida-cx .cab { color: #dfe2e6; }
+
+/* Paginacao desabilitada */
+html[data-glpi-theme-dark="1"] .identificarcomputador-paginacao button:disabled { color: #5a606a; }
