@@ -23,6 +23,8 @@ $cfg = [
     'csrf'        => Session::getNewCSRFToken(),
     'podeExcluir' => Session::haveRight('config', UPDATE),
     'podeBaixar'  => $C::podeBaixar(),
+    'podeExecutar'=> $C::podeExecutar(),
+    'url_execucao'=> $C::url('execucao.php'),
     'minutos'     => $C::getTokenMinutos(),
 ];
 ?>
@@ -35,6 +37,9 @@ $cfg = [
         <a href="<?php echo $e($cfg['url_baixar']); ?>" class="btn identificarcomputador-btn-principal" id="identificarcomputador-baixar">
           <i class="ti ti-download"></i> Identifique meu computador
         </a>
+      <?php } ?>
+      <?php if ($cfg['podeExecutar']) { ?>
+        <a href="<?php echo $e($cfg['url_execucao']); ?>" class="btn identificarcomputador-btn"><i class="ti ti-terminal-2"></i> Execução remota</a>
       <?php } ?>
       <button type="button" class="btn identificarcomputador-btn" data-ic-exportar="excel"><i class="ti ti-file-spreadsheet"></i> Excel</button>
       <button type="button" class="btn identificarcomputador-btn" data-ic-exportar="csv"><i class="ti ti-file"></i> CSV</button>

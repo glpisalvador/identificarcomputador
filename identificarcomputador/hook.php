@@ -100,12 +100,85 @@ function plugin_identificarcomputador_install(): bool
         ");
     }
 
+    // Ponte de execucao remota: sessoes ativas, biblioteca de arquivos e fila/log de execucoes
+    if (!$DB->tableExists($p . 'ponte_sessoes')) {
+        $DB->doQuery("
+            CREATE TABLE `{$p}ponte_sessoes` (
+                `id` int unsigned NOT NULL AUTO_INCREMENT,
+                `token` varchar(64) NOT NULL,
+                `users_id_dono` int unsigned NOT NULL DEFAULT 0,
+                `computadores_id` int unsigned NOT NULL DEFAULT 0,
+                `hostname` varchar(255) NOT NULL DEFAULT '',
+                `ip` varchar(100) NOT NULL DEFAULT '',
+                `so` varchar(255) NOT NULL DEFAULT '',
+                `usuario_logado` varchar(255) NOT NULL DEFAULT '',
+                `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                `last_seen` timestamp NULL DEFAULT NULL,
+                `date_expiracao` timestamp NULL DEFAULT NULL,
+                `ativo` tinyint(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `token` (`token`),
+                KEY `ativo` (`ativo`)
+            ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    if (!$DB->tableExists($p . 'ponte_arquivos')) {
+        $DB->doQuery("
+            CREATE TABLE `{$p}ponte_arquivos` (
+                `id` int unsigned NOT NULL AUTO_INCREMENT,
+                `sessoes_id` int unsigned NOT NULL DEFAULT 0,
+                `users_id` int unsigned NOT NULL DEFAULT 0,
+                `nome` varchar(255) NOT NULL DEFAULT '',
+                `formato` varchar(20) NOT NULL DEFAULT '',
+                `tamanho` bigint NOT NULL DEFAULT 0,
+                `caminho` varchar(255) NOT NULL DEFAULT '',
+                `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `sessoes_id` (`sessoes_id`)
+            ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    if (!$DB->tableExists($p . 'ponte_jobs')) {
+        $DB->doQuery("
+            CREATE TABLE `{$p}ponte_jobs` (
+                `id` int unsigned NOT NULL AUTO_INCREMENT,
+                `sessoes_id` int unsigned NOT NULL DEFAULT 0,
+                `arquivos_id` int unsigned NOT NULL DEFAULT 0,
+                `users_id` int unsigned NOT NULL DEFAULT 0,
+                `computadores_id` int unsigned NOT NULL DEFAULT 0,
+                `hostname` varchar(255) NOT NULL DEFAULT '',
+                `nome` varchar(255) NOT NULL DEFAULT '',
+                `formato` varchar(20) NOT NULL DEFAULT '',
+                `tamanho` bigint NOT NULL DEFAULT 0,
+                `status` varchar(20) NOT NULL DEFAULT 'pendente',
+                `exit_code` int DEFAULT NULL,
+                `saida` longtext,
+                `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                `date_inicio` timestamp NULL DEFAULT NULL,
+                `date_fim` timestamp NULL DEFAULT NULL,
+                `duracao_seg` int NOT NULL DEFAULT 0,
+                PRIMARY KEY (`id`),
+                KEY `sessoes_id` (`sessoes_id`),
+                KEY `computadores_id` (`computadores_id`),
+                KEY `status` (`status`)
+            ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+
+    // Pasta dos arquivos enviados (fora da web; servidos so pelo endpoint com token)
+    $dir = GLPI_DOC_DIR . '/_plugins/identificarcomputador/scripts';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
     // Configuracoes padrao (so insere o que ainda nao existe)
     $padroes = [
-        'allowed_profiles_ver'    => '[]',
-        'allowed_profiles_baixar' => '[]',
-        'token_minutos'           => '30',
-        'url_recebimento'         => '',
+        'allowed_profiles_ver'      => '[]',
+        'allowed_profiles_baixar'   => '[]',
+        'allowed_profiles_executar' => '[]',
+        'token_minutos'             => '30',
+        'url_recebimento'           => '',
+        'max_upload_mb'             => '100',
     ];
     foreach ($padroes as $nome => $valor) {
         $existe = $DB->request([

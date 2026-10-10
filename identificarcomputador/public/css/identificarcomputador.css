@@ -181,3 +181,41 @@
 .identificarcomputador-detalhe .identificarcomputador-tabela-det { max-height: 440px; overflow: auto; display: block; }
 .identificarcomputador-detalhe .identificarcomputador-tabela-det { border: 1px solid #e8e8e8; border-radius: 4px; }
 .identificarcomputador-detalhe .identificarcomputador-bloco-tit { border-left: 3px solid #e5a54b; padding-left: 8px; }
+
+/* Execucao remota (1.1.0) */
+.identificarcomputador-tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 920px) { .identificarcomputador-tres { grid-template-columns: 1fr; } }
+.identificarcomputador-btn-mini { padding: 3px 9px; font-size: 11px; }
+.identificarcomputador-exec-grade { display: grid; grid-template-columns: 300px 1fr; gap: 14px; }
+@media (max-width: 820px) { .identificarcomputador-exec-grade { grid-template-columns: 1fr; } }
+.identificarcomputador-exec-sub { font-size: 12px; font-weight: 600; color: #495057; margin: 2px 0 6px; display: flex; align-items: center; gap: 6px; }
+.identificarcomputador-exec-maq { border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; background: #fff; }
+.identificarcomputador-exec-maq:hover { background: #f8f9fa; }
+.identificarcomputador-exec-maq.sel { border-color: #007bff; background: #e7f1ff; }
+.identificarcomputador-exec-maq .nome { font-size: 12px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 6px; }
+.identificarcomputador-exec-maq .sub { font-size: 10px; color: #6c757d; margin-top: 1px; }
+.identificarcomputador-exec-painel { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 14px; background: #fff; min-height: 220px; }
+.identificarcomputador-exec-cab { font-size: 14px; color: #495057; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
+.identificarcomputador-exec-upl { border: 1px dashed #c9ccd0; border-radius: 6px; padding: 14px; text-align: center; font-size: 12px; color: #6c757d; background: #fafbfc; }
+.identificarcomputador-exec-upl.arrastando { border-color: #007bff; background: #e7f1ff; color: #333; }
+.identificarcomputador-exec-prog { margin-top: 8px; }
+.identificarcomputador-exec-prog .l { font-size: 11px; color: #495057; margin-bottom: 3px; }
+.identificarcomputador-exec-prog .barra { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
+.identificarcomputador-exec-prog .fill { height: 100%; background: #e5a54b; transition: width .2s; }
+.identificarcomputador-exec-arqs { margin-top: 12px; }
+.identificarcomputador-exec-arq { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #f0f0f0; border-radius: 4px; margin-bottom: 5px; }
+.identificarcomputador-exec-arq .nm { flex: 1; font-size: 12px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.identificarcomputador-exec-arq .tm { font-size: 11px; color: #999; }
+.ext { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; background: #eef1f4; color: #495057; text-transform: uppercase; }
+.ext-ps1 { background: #dbeafe; color: #1e40af; } .ext-bat, .ext-cmd { background: #e5e7eb; color: #374151; }
+.ext-py { background: #fef9c3; color: #854d0e; } .ext-vbs, .ext-js { background: #fae8ff; color: #86198f; }
+.identificarcomputador-exec-saida { margin-top: 12px; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; }
+.identificarcomputador-exec-saida .cab { padding: 6px 10px; font-size: 12px; font-weight: 600; background: #f8f9fa; border-bottom: 1px solid #e8e8e8; display: flex; align-items: center; gap: 6px; }
+.identificarcomputador-exec-saida .cab.ok { color: #198754; } .identificarcomputador-exec-saida .cab.err { color: #b02a37; }
+.identificarcomputador-exec-saida .out, .identificarcomputador-saida-cx .out {
+  margin: 0; padding: 10px; font-family: Consolas, 'Courier New', monospace; font-size: 11px; color: #222;
+  background: #fff; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+.identificarcomputador-saida-cx { max-width: 760px; width: 90vw; }
+.identificarcomputador-saida-cx .cab { font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.identificarcomputador-saida-cx .out { border: 1px solid #e8e8e8; border-radius: 4px; }

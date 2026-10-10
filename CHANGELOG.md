@@ -2,6 +2,16 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.1.0 — 2026-10-05
+
+Ponte de execução remota (temporária) e página de logs.
+
+- Enquanto a janela do script fica aberta (até 30 minutos), a máquina abre um canal com o GLPI.
+- Nova página **Execução remota** (em Ferramentas): lista as máquinas online, permite enviar vários arquivos (ps1, bat, cmd, vbs, js, py — até 100 MB cada, em pedaços) e escolher qual executar. Tudo roda com a permissão de administrador que o usuário deu ao abrir o script.
+- Aba **Logs**: cada execução registra quem enviou (usuário do GLPI), o arquivo, formato, tamanho, status, código de saída, data/hora, duração e o computador, com a saída completa.
+- Permissão própria por perfil ("enviar e executar scripts"), separada de ver e baixar.
+- Nada fica instalado na máquina: o canal termina ao fechar a janela ou em 30 minutos.
+
 ## 1.0.2 — 2026-10-05
 
 Página de detalhe modernizada e mais dados coletados.

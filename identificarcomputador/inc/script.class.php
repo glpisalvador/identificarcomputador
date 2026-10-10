@@ -84,6 +84,10 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
     public static function cronLimparTokens(CronTask $task): int
     {
         $n = self::limparExpirados();
+        // Tambem encerra sessoes vencidas da ponte e limpa arquivos antigos
+        if (class_exists('PluginIdentificarcomputadorPonte')) {
+            $n += PluginIdentificarcomputadorPonte::manutencao();
+        }
         if ($n > 0) {
             $task->addVolume($n);
         }
@@ -105,9 +109,10 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
         $url     = PluginIdentificarcomputadorConfig::getUrlRecebimento();
         $minutos = PluginIdentificarcomputadorConfig::getTokenMinutos();
         $destino = $url . '/plugins/identificarcomputador/front/receber.php';
+        $ponte   = $url . '/plugins/identificarcomputador/front/ponte.php';
 
         $ps = self::powershell();
-        $ps = str_replace(['{{DESTINO}}', '{{TOKEN}}', '{{MINUTOS}}'], [$destino, $token, (string) $minutos], $ps);
+        $ps = str_replace(['{{DESTINO}}', '{{PONTE}}', '{{TOKEN}}', '{{MINUTOS}}'], [$destino, $ponte, $token, (string) $minutos], $ps);
 
         $marcador = '#__PS_INICIO__#';
         $tam      = strlen($marcador);
@@ -436,10 +441,55 @@ try {
     Linha 'Verifique se a maquina alcanca o endereco do GLPI e se o codigo'
     Linha ('ainda e valido (ele expira em {{MINUTOS}} minutos apos o download).')
 }
+Secao 'Canal de execucao remota'
+Linha 'Mantenha esta janela aberta para receber e executar scripts enviados pelo GLPI.'
+Linha 'O canal usa a permissao de administrador desta janela e some ao fechar.'
+$baseP = '{{PONTE}}'
+$tokP  = '{{TOKEN}}'
+$fimP  = (Get-Date).AddMinutes({{MINUTOS}})
+$infoP = (@{ hostname = $d.hostname; uuid = $d.uuid; so = $d.so; usuario_logado = $d.usuario_logado } | ConvertTo-Json -Compress)
+Write-Host ('   Canal ativo ate ' + $fimP.ToString('HH:mm') + '.') -ForegroundColor Cyan
+while ((Get-Date) -lt $fimP) {
+    try {
+        $rp = Invoke-RestMethod -Uri ($baseP + '?action=poll&token=' + $tokP) -Method Post -Body $infoP -ContentType 'application/json; charset=utf-8' -TimeoutSec 20
+        if ($rp.parar) { break }
+        if ($rp.jobs) {
+            foreach ($job in $rp.jobs) {
+                Write-Host ''
+                Write-Host ('>> Recebido: ' + $job.nome + ' (.' + $job.formato + ')') -ForegroundColor Yellow
+                $dest = Join-Path $env:TEMP ('icexec_' + $job.id + '.' + $job.formato)
+                try {
+                    Invoke-WebRequest -Uri ($baseP + '?action=baixar&token=' + $tokP + '&job=' + $job.id) -OutFile $dest -TimeoutSec 300
+                    $saidaJ = ''
+                    $codeJ = 0
+                    switch ($job.formato) {
+                        'ps1'   { $saidaJ = (& powershell -NoProfile -ExecutionPolicy Bypass -File $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
+                        'py'    { $saidaJ = (& python $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
+                        'vbs'   { $saidaJ = (& cscript //nologo $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
+                        'js'    { $saidaJ = (& cscript //nologo //E:jscript $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
+                        default { $saidaJ = (& cmd /c $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
+                    }
+                    if ($null -eq $codeJ) { $codeJ = 0 }
+                    $resJ = (@{ exit = $codeJ; saida = $saidaJ } | ConvertTo-Json -Compress)
+                    Invoke-RestMethod -Uri ($baseP + '?action=result&token=' + $tokP + '&job=' + $job.id) -Method Post -Body $resJ -ContentType 'application/json; charset=utf-8' -TimeoutSec 60 | Out-Null
+                    Write-Host ('   Concluido (codigo ' + $codeJ + ')') -ForegroundColor Green
+                } catch {
+                    $resJ = (@{ exit = -1; saida = ('Falha ao executar: ' + $_.Exception.Message) } | ConvertTo-Json -Compress)
+                    try { Invoke-RestMethod -Uri ($baseP + '?action=result&token=' + $tokP + '&job=' + $job.id) -Method Post -Body $resJ -ContentType 'application/json; charset=utf-8' -TimeoutSec 60 | Out-Null } catch {}
+                    Write-Host ('   Erro: ' + $_.Exception.Message) -ForegroundColor Red
+                } finally {
+                    Remove-Item $dest -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+    } catch { }
+    Start-Sleep -Seconds 4
+}
 Write-Host ''
 Write-Host '============================================================'
-if ($ok) { Write-Host '   Concluido. Pode fechar esta janela.' -ForegroundColor Green }
-else { Write-Host '   Finalizado com erro. Pode fechar esta janela.' -ForegroundColor Yellow }
+Write-Host '   Canal de execucao remota encerrado.' -ForegroundColor Cyan
+if ($ok) { Write-Host '   Inventario enviado. Pode fechar esta janela.' -ForegroundColor Green }
+else { Write-Host '   Inventario nao enviado. Pode fechar esta janela.' -ForegroundColor Yellow }
 Write-Host '============================================================'
 PS;
     }

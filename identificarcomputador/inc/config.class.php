@@ -144,4 +144,38 @@ class PluginIdentificarcomputadorConfig extends CommonDBTM
         }
         return in_array(self::perfilAtual(), array_map('intval', self::getArrayConfig('allowed_profiles_baixar')), true);
     }
+
+    /** O perfil ativo pode enviar e executar scripts nas maquinas online? */
+    public static function podeExecutar(): bool
+    {
+        if (Session::haveRight('config', UPDATE)) {
+            return true;
+        }
+        return in_array(self::perfilAtual(), array_map('intval', self::getArrayConfig('allowed_profiles_executar')), true);
+    }
+
+    /** Limite de upload por arquivo, em MB (padrao 100, de 1 a 1024). */
+    public static function getMaxUploadMb(): int
+    {
+        $m = (int) self::getConfig('max_upload_mb', 100);
+        if ($m < 1)    { $m = 100; }
+        if ($m > 1024) { $m = 1024; }
+        return $m;
+    }
+
+    /** Pasta onde ficam os arquivos enviados para execucao. */
+    public static function dirScripts(): string
+    {
+        $dir = GLPI_DOC_DIR . '/_plugins/identificarcomputador/scripts';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        return $dir;
+    }
+
+    /** Formatos de script aceitos para envio/execucao. */
+    public static function formatosAceitos(): array
+    {
+        return ['ps1', 'bat', 'cmd', 'vbs', 'js', 'py'];
+    }
 }
