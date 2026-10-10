@@ -2,6 +2,14 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.3.0 — 2026-10-10
+
+Licença do Windows e do Office no inventário.
+
+- O resumo agora traz a **licença do Windows** (edição, status de ativação, canal e uma avaliação: Original OEM/varejo, por volume/KMS ou não ativado) e a **licença do Office**, se houver (perpétua com chave ou assinatura Microsoft 365).
+- A aba Segurança mostra os detalhes (chave parcial, descrição, chave OEM na BIOS) e os produtos Office.
+- A avaliação é uma **indicação** pelo status e canal da licença — ativação por KMS numa máquina fora de domínio costuma indicar ativador não oficial, mas não é prova definitiva de pirataria.
+
 ## 1.2.1 — 2026-10-10
 
 Correção de acentos na saída dos scripts.
