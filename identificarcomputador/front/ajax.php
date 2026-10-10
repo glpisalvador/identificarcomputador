@@ -31,12 +31,66 @@ $responder = static function (array $r): void {
     exit;
 };
 
+$action = (string) ($_POST['action'] ?? $_REQUEST['action'] ?? '');
+$Comp   = PluginIdentificarcomputadorComputador::class;
+$Ponte  = PluginIdentificarcomputadorPonte::class;
+
+// ---------------------------------------------------------------- ponte de execucao remota
+if (strpos($action, 'ponte_') === 0) {
+    if (!PluginIdentificarcomputadorConfig::podeExecutar()) {
+        $responder(['success' => false, 'message' => 'Sem permissão para executar scripts.']);
+    }
+    $uid = (int) Session::getLoginUserID();
+    switch ($action) {
+        case 'ponte_online':
+            $responder(['success' => true, 'sessoes' => $Ponte::sessoesOnline()]);
+            break;
+
+        case 'ponte_arquivos':
+            $responder(['success' => true, 'arquivos' => $Ponte::arquivosDaSessao((int) ($_POST['sessao'] ?? 0))]);
+            break;
+
+        case 'ponte_chunk':
+            $r = $Ponte::gravarChunk((string) ($_POST['upload_id'] ?? ''), (int) ($_POST['indice'] ?? 0), base64_decode((string) ($_POST['dados'] ?? ''), true) ?: '');
+            $responder($r);
+            break;
+
+        case 'ponte_finalizar':
+            Session::checkCSRF($_POST);
+            $responder($Ponte::finalizarUpload((string) ($_POST['upload_id'] ?? ''), (int) ($_POST['sessao'] ?? 0), (string) ($_POST['nome'] ?? ''), $uid));
+            break;
+
+        case 'ponte_executar':
+            Session::checkCSRF($_POST);
+            $responder($Ponte::executar((int) ($_POST['arquivo'] ?? 0), $uid));
+            break;
+
+        case 'ponte_job':
+            $responder($Ponte::statusJob((int) ($_POST['id'] ?? 0)));
+            break;
+
+        case 'ponte_cancelar':
+            Session::checkCSRF($_POST);
+            $responder($Ponte::cancelar((int) ($_POST['id'] ?? 0)));
+            break;
+
+        case 'ponte_logs':
+            $responder(['success' => true, 'linhas' => $Ponte::logs(['busca' => (string) ($_POST['busca'] ?? '')])]);
+            break;
+
+        case 'ponte_saida':
+            $responder(['success' => true, 'saida' => $Ponte::saidaJob((int) ($_POST['id'] ?? 0))]);
+            break;
+
+        default:
+            $responder(['success' => false, 'message' => 'Ação desconhecida.']);
+    }
+}
+
+// ---------------------------------------------------------------- painel (ver resultados)
 if (!PluginIdentificarcomputadorConfig::podeVer()) {
     $responder(['success' => false, 'message' => 'Sem permissão para ver os resultados.']);
 }
-
-$Comp   = PluginIdentificarcomputadorComputador::class;
-$action = (string) ($_POST['action'] ?? $_REQUEST['action'] ?? '');
 
 switch ($action) {
     case 'listar':

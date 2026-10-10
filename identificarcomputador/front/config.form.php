@@ -21,6 +21,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['save_action']
         case 'salvar_acesso':
             $C::setArrayConfig('allowed_profiles_ver', $ids('allowed_profiles_ver'));
             $C::setArrayConfig('allowed_profiles_baixar', $ids('allowed_profiles_baixar'));
+            $C::setArrayConfig('allowed_profiles_executar', $ids('allowed_profiles_executar'));
             Session::addMessageAfterRedirect('Permissões salvas.', false, INFO);
             break;
 
@@ -33,6 +34,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['save_action']
                 break;
             }
             $C::setConfig('url_recebimento', rtrim($url, '/'));
+            $C::setConfig('max_upload_mb', (string) max(1, min(1024, (int) ($_POST['max_upload_mb'] ?? 100))));
             Session::addMessageAfterRedirect('Configurações do script salvas.', false, INFO);
             break;
     }
@@ -43,6 +45,7 @@ Html::header('Identificar Computador', $_SERVER['PHP_SELF'] ?? '', 'config', 'Pl
 $perfis       = $C::getTodosPerfis();
 $selVer       = array_map('intval', $C::getArrayConfig('allowed_profiles_ver'));
 $selBaixar    = array_map('intval', $C::getArrayConfig('allowed_profiles_baixar'));
+$selExecutar  = array_map('intval', $C::getArrayConfig('allowed_profiles_executar'));
 $tokenMinutos = $C::getTokenMinutos();
 $urlConfig    = (string) $C::getConfig('url_recebimento', '');
 $urlEfetiva   = $C::getUrlRecebimento();
@@ -72,7 +75,7 @@ $listaPerfis = static function (string $campo, array $selecionados) use ($perfis
     <input type="hidden" name="save_action" value="salvar_acesso">
     <div class="identificarcomputador-card-cab"><i class="ti ti-shield-lock"></i> Permissões por perfil</div>
     <p class="identificarcomputador-ajuda"><i class="ti ti-info-circle"></i> Quem pode ver os resultados e quem pode baixar o script. Perfis com direito de configuração do GLPI sempre têm acesso.</p>
-    <div class="identificarcomputador-duas">
+    <div class="identificarcomputador-tres">
       <div>
         <label class="identificarcomputador-rot"><i class="ti ti-eye"></i> Ver os resultados</label>
         <?php echo $listaPerfis('allowed_profiles_ver', $selVer); ?>
@@ -80,6 +83,10 @@ $listaPerfis = static function (string $campo, array $selecionados) use ($perfis
       <div>
         <label class="identificarcomputador-rot"><i class="ti ti-download"></i> Baixar o script</label>
         <?php echo $listaPerfis('allowed_profiles_baixar', $selBaixar); ?>
+      </div>
+      <div>
+        <label class="identificarcomputador-rot"><i class="ti ti-terminal-2"></i> Enviar e executar scripts</label>
+        <?php echo $listaPerfis('allowed_profiles_executar', $selExecutar); ?>
       </div>
     </div>
     <div class="identificarcomputador-rodape">
@@ -95,6 +102,11 @@ $listaPerfis = static function (string $campo, array $selecionados) use ($perfis
       <label class="identificarcomputador-rot">Validade do script baixado (minutos)</label>
       <input type="number" name="token_minutos" min="1" max="1440" value="<?php echo (int) $tokenMinutos; ?>" class="form-control form-control-sm" style="max-width:120px">
       <p class="identificarcomputador-ajuda"><i class="ti ti-clock"></i> Depois desse tempo o código do download deixa de ser aceito. Padrão: 30 minutos.</p>
+    </div>
+    <div class="identificarcomputador-campo">
+      <label class="identificarcomputador-rot">Tamanho máximo por arquivo enviado para execução (MB)</label>
+      <input type="number" name="max_upload_mb" min="1" max="1024" value="<?php echo (int) $C::getMaxUploadMb(); ?>" class="form-control form-control-sm" style="max-width:120px">
+      <p class="identificarcomputador-ajuda"><i class="ti ti-upload"></i> Vale para a execução remota (<?php echo $e(implode(', ', $C::formatosAceitos())); ?>). Padrão: 100 MB.</p>
     </div>
     <div class="identificarcomputador-campo">
       <label class="identificarcomputador-rot">Endereço do GLPI que as máquinas enxergam</label>

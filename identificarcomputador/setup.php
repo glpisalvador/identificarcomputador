@@ -10,7 +10,7 @@
  * Independente do inventario nativo do GLPI: usa apenas tabelas proprias.
  */
 
-define('PLUGIN_IDENTIFICARCOMPUTADOR_VERSION', '1.0.2');
+define('PLUGIN_IDENTIFICARCOMPUTADOR_VERSION', '1.1.0');
 define('PLUGIN_IDENTIFICARCOMPUTADOR_MIN_GLPI', '11.0.0');
 define('PLUGIN_IDENTIFICARCOMPUTADOR_MAX_GLPI', '12.99.99');
 
@@ -21,12 +21,13 @@ function plugin_init_identificarcomputador(): void
     // Chave literal: a constante Hooks::CSRF_COMPLIANT nao existe no GLPI 12
     $PLUGIN_HOOKS['csrf_compliant']['identificarcomputador'] = true;
 
-    // Pagina que recebe os dados do script: sem login e sem sessao (autorizada pelo token de 30 min)
+    // Paginas usadas pelo script na maquina: sem login e sem sessao (autorizadas pelo token de 30 min)
+    //   receber.php -> inventario    ponte.php -> execucao remota
     if (class_exists(\Glpi\Http\Firewall::class)) {
-        \Glpi\Http\Firewall::addPluginStrategyForLegacyScripts('identificarcomputador', '#^/front/receber\.php$#', \Glpi\Http\Firewall::STRATEGY_NO_CHECK);
+        \Glpi\Http\Firewall::addPluginStrategyForLegacyScripts('identificarcomputador', '#^/front/(receber|ponte)\.php$#', \Glpi\Http\Firewall::STRATEGY_NO_CHECK);
     }
     if (class_exists(\Glpi\Http\SessionManager::class)) {
-        \Glpi\Http\SessionManager::registerPluginStatelessPath('identificarcomputador', '#^/front/receber\.php$#');
+        \Glpi\Http\SessionManager::registerPluginStatelessPath('identificarcomputador', '#^/front/(receber|ponte)\.php$#');
     }
 
     $plugin = new Plugin();
@@ -37,6 +38,7 @@ function plugin_init_identificarcomputador(): void
     Plugin::registerClass('PluginIdentificarcomputadorConfig');
     Plugin::registerClass('PluginIdentificarcomputadorMenu');
     Plugin::registerClass('PluginIdentificarcomputadorComputador');
+    Plugin::registerClass('PluginIdentificarcomputadorPonte');
 
     // Pagina de configuracao acessivel pelo icone do plugin em Configurar > Plugins
     $PLUGIN_HOOKS['config_page']['identificarcomputador'] = 'front/config.php';
@@ -47,7 +49,10 @@ function plugin_init_identificarcomputador(): void
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     if (strpos($uri, '/plugins/identificarcomputador/') !== false) {
         $PLUGIN_HOOKS['add_css']['identificarcomputador']        = 'public/css/identificarcomputador.css';
-        $PLUGIN_HOOKS['add_javascript']['identificarcomputador'] = 'public/js/identificarcomputador.js';
+        $PLUGIN_HOOKS['add_javascript']['identificarcomputador'] = [
+            'public/js/identificarcomputador.js',
+            'public/js/execucao.js',
+        ];
     }
 }
 
