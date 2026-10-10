@@ -446,6 +446,59 @@ try {
     $d.acesso_remoto_instalados = @($achados | Select-Object -Unique)
 } catch {}
 
+Secao 'Licencas (Windows e Office)'
+try {
+    function AvaliarLic($st, $canal, $pod) {
+        if ($st -ne 1) { return 'Nao ativado' }
+        if ($canal -match 'OEM') { return 'Original (OEM de fabrica)' }
+        if ($canal -match 'RETAIL') { return 'Original (varejo)' }
+        if ($canal -match 'MAK') { return 'Licenca por volume (MAK)' }
+        if ($canal -match 'GVLK') { if ($pod) { return 'Ativado por KMS (corporativo)' } else { return 'Ativado por KMS - possivel ativador nao oficial' } }
+        return 'Ativado'
+    }
+    function StatusLic($st) {
+        switch ([int]$st) {
+            1 { 'Ativado' } 0 { 'Nao licenciado' } 2 { 'Periodo de carencia' } 3 { 'Periodo de carencia (OOT)' }
+            4 { 'Carencia - nao genuino' } 5 { 'Notificacao (nao ativado)' } 6 { 'Carencia estendida' } default { "Status $st" }
+        }
+    }
+    $pod = [bool]$d.parte_de_dominio
+    $lic = [ordered]@{}
+    # Windows (ApplicationID do Windows)
+    $win = Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object -First 1
+    if ($win) {
+        $stw = [int]$win.LicenseStatus
+        $canalw = [string]$win.ProductKeyChannel
+        $avalw = AvaliarLic $stw $canalw $pod
+        $lic.windows = [ordered]@{
+            edicao        = $d.so
+            status        = StatusLic $stw
+            canal         = $canalw
+            chave_parcial = [string]$win.PartialProductKey
+            descricao     = [string]$win.Description
+            avaliacao     = $avalw
+        }
+        try { $oem = (Get-CimInstance SoftwareLicensingService).OA3xOriginalProductKey; $lic.windows.oem_na_bios = if ($oem) { 'Sim' } else { 'Nao' } } catch {}
+        $d.windows_licenca = $avalw
+    } else {
+        $d.windows_licenca = 'Nao identificada'
+    }
+    # Office (ApplicationID do Office)
+    $offs = @()
+    foreach ($o in Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='0ff1ce15-a989-479d-af46-f275c6370663' AND PartialProductKey IS NOT NULL") {
+        $sto = [int]$o.LicenseStatus
+        $canalo = [string]$o.ProductKeyChannel
+        $offs += [ordered]@{ nome = [string]$o.Name; status = StatusLic $sto; canal = $canalo; chave_parcial = [string]$o.PartialProductKey; avaliacao = (AvaliarLic $sto $canalo $pod) }
+    }
+    $lic.office = $offs
+    # Office por assinatura (Microsoft 365 / Click-to-Run), detectado pelos programas
+    try { $lic.office_assinatura = @($d.programas | Where-Object { $_.nome -match 'Microsoft 365|Office 365' } | ForEach-Object { $_.nome } | Select-Object -Unique) } catch {}
+    if ($offs.Count -gt 0) { $d.office_licenca = ($offs | ForEach-Object { $_.nome + ' - ' + $_.avaliacao }) -join '; ' }
+    elseif ($lic.office_assinatura -and $lic.office_assinatura.Count -gt 0) { $d.office_licenca = ($lic.office_assinatura -join '; ') + ' (assinatura)' }
+    else { $d.office_licenca = 'Office nao identificado' }
+    $d.licencas = $lic
+} catch {}
+
 Secao 'Enviando ao GLPI'
 Linha 'Os dados coletados estao sendo enviados ao GLPI...'
 $json = $d | ConvertTo-Json -Depth 8 -Compress

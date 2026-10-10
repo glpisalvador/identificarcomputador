@@ -113,6 +113,8 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
       'Placa de som'        => $placaSom,
       'Endereço MAC'        => $macP,
       'IP'                  => $ipP,
+      'Licença do Windows'  => $d['windows_licenca'] ?? '',
+      'Licença do Office'   => $d['office_licenca'] ?? '',
     ]);
     ?>
   </div>
@@ -190,6 +192,24 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
     <?php echo $tab([['k'=>'unidade','t'=>'Unidade'],['k'=>'protecao','t'=>'Proteção'],['k'=>'status','t'=>'Status']], $d['bitlocker'] ?? []); ?>
     <div class="identificarcomputador-bloco-tit">Atualizações recentes</div>
     <?php echo $tab([['k'=>'id','t'=>'KB'],['k'=>'tipo','t'=>'Tipo'],['k'=>'instalado_em','t'=>'Instalado em']], $d['hotfix_recentes'] ?? []); ?>
+
+    <div class="identificarcomputador-bloco-tit">Licença do Windows</div>
+    <?php $lw = $d['licencas']['windows'] ?? null; if (is_array($lw)) { echo $kv([
+      'Edição'             => $lw['edicao'] ?? '',
+      'Avaliação'          => $lw['avaliacao'] ?? '',
+      'Status de ativação' => $lw['status'] ?? '',
+      'Canal da licença'   => $lw['canal'] ?? '',
+      'Chave (parcial)'    => $lw['chave_parcial'] ?? '',
+      'Chave OEM na BIOS'  => $lw['oem_na_bios'] ?? '',
+      'Descrição'          => $lw['descricao'] ?? '',
+    ]); } else { echo '<div class="identificarcomputador-vazio">Licença do Windows não identificada.</div>'; } ?>
+
+    <div class="identificarcomputador-bloco-tit">Licença do Office</div>
+    <?php echo $tab([['k'=>'nome','t'=>'Produto'],['k'=>'avaliacao','t'=>'Avaliação'],['k'=>'status','t'=>'Status'],['k'=>'canal','t'=>'Canal'],['k'=>'chave_parcial','t'=>'Chave (parcial)']], $d['licencas']['office'] ?? []); ?>
+    <?php if (!empty($d['licencas']['office_assinatura'])) { ?>
+      <p class="identificarcomputador-ajuda"><i class="ti ti-info-circle"></i> Office por assinatura (Microsoft 365): <?php echo $v($d['licencas']['office_assinatura']); ?></p>
+    <?php } ?>
+    <p class="identificarcomputador-ajuda"><i class="ti ti-alert-triangle"></i> A avaliação é uma indicação baseada no status de ativação e no canal da licença. Ativação por KMS numa máquina fora de domínio costuma indicar ativador não oficial, mas não é prova definitiva de pirataria.</p>
   </div>
 
   <div class="identificarcomputador-aba-corpo" data-corpo="programas">
