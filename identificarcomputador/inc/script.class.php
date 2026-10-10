@@ -15,6 +15,9 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
 {
     public const TABELA_TOKENS = 'glpi_plugin_identificarcomputador_tokens';
 
+    /** Minutos que o canal de execucao remota fica aberto (ou ate a janela ser fechada). */
+    public const PONTE_MINUTOS = 10;
+
     public static function getTypeName($nb = 0): string
     {
         return __('Identificar Computador', 'identificarcomputador');
@@ -104,16 +107,9 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
      * o .cmd traz o PowerShell como texto apos um marcador no fim do arquivo, extrai para um
      * .ps1 temporario e o executa.
      */
-    public static function gerarCmd(string $token): string
+    /** Monta um .cmd que se eleva a administrador, extrai o PowerShell (apos o marcador) e o executa. */
+    private static function montarCmd(string $ps): string
     {
-        $url     = PluginIdentificarcomputadorConfig::getUrlRecebimento();
-        $minutos = PluginIdentificarcomputadorConfig::getTokenMinutos();
-        $destino = $url . '/plugins/identificarcomputador/front/receber.php';
-        $ponte   = $url . '/plugins/identificarcomputador/front/ponte.php';
-
-        $ps = self::powershell();
-        $ps = str_replace(['{{DESTINO}}', '{{PONTE}}', '{{TOKEN}}', '{{MINUTOS}}'], [$destino, $ponte, $token, (string) $minutos], $ps);
-
         $marcador = '#__PS_INICIO__#';
         $tam      = strlen($marcador);
         // IndexOf monta o marcador em dois pedacos para a propria linha nao casar com a busca;
@@ -144,12 +140,37 @@ class PluginIdentificarcomputadorScript extends CommonGLPI
         return $cmd;
     }
 
+    /** Script que SO identifica o computador (inventario) e fecha. */
+    public static function gerarCmdInventario(string $token): string
+    {
+        $url     = PluginIdentificarcomputadorConfig::getUrlRecebimento();
+        $minutos = PluginIdentificarcomputadorConfig::getTokenMinutos();
+        $destino = $url . '/plugins/identificarcomputador/front/receber.php';
+        $ps = str_replace(['{{DESTINO}}', '{{TOKEN}}', '{{MINUTOS}}'], [$destino, $token, (string) $minutos], self::powershellColeta());
+        return self::montarCmd($ps);
+    }
+
+    /** Script que abre a execucao remota por PONTE_MINUTOS minutos (ou ate a janela ser fechada). */
+    public static function gerarCmdPonte(string $token): string
+    {
+        $url   = PluginIdentificarcomputadorConfig::getUrlRecebimento();
+        $ponte = $url . '/plugins/identificarcomputador/front/ponte.php';
+        $ps = str_replace(['{{PONTE}}', '{{TOKEN}}', '{{MINUTOS}}'], [$ponte, $token, (string) self::PONTE_MINUTOS], self::powershellPonte());
+        return self::montarCmd($ps);
+    }
+
+    /** Compatibilidade: gera o script de inventario. */
+    public static function gerarCmd(string $token): string
+    {
+        return self::gerarCmdInventario($token);
+    }
+
     /**
      * Script PowerShell de coleta. Placeholders {{DESTINO}}, {{TOKEN}} e {{MINUTOS}}
      * sao trocados antes de codificar. Cada secao e protegida por try/catch: uma falha
      * nunca interrompe a coleta.
      */
-    private static function powershell(): string
+    private static function powershellColeta(): string
     {
         return <<<'PS'
 $ErrorActionPreference = 'SilentlyContinue'
@@ -441,55 +462,130 @@ try {
     Linha 'Verifique se a maquina alcanca o endereco do GLPI e se o codigo'
     Linha ('ainda e valido (ele expira em {{MINUTOS}} minutos apos o download).')
 }
-Secao 'Canal de execucao remota'
-Linha 'Mantenha esta janela aberta para receber e executar scripts enviados pelo GLPI.'
-Linha 'O canal usa a permissao de administrador desta janela e some ao fechar.'
+Write-Host ''
+Write-Host '============================================================'
+if ($ok) { Write-Host '   Inventario enviado. Pode fechar esta janela.' -ForegroundColor Green }
+else { Write-Host '   Inventario NAO enviado. Veja a mensagem acima.' -ForegroundColor Yellow }
+Write-Host '============================================================'
+PS;
+    }
+
+    /**
+     * Script da execucao remota: identifica a maquina de forma leve, abre o canal por
+     * {{MINUTOS}} minutos e executa os scripts enviados pelo GLPI, SEMPRE devolvendo o
+     * resultado (deu certo ou nao) e a saida. Usa EOF no stdin e timeout para nao travar
+     * em scripts com "pause" ou leitura.
+     */
+    private static function powershellPonte(): string
+    {
+        return <<<'PS'
+$ErrorActionPreference = 'SilentlyContinue'
+$ProgressPreference = 'SilentlyContinue'
+chcp 65001 > $null
+$Host.UI.RawUI.WindowTitle = 'Execucao remota - GLPI'
+function Linha($t) { Write-Host ('   ' + $t) -ForegroundColor Gray }
+
+Write-Host '============================================================'
+Write-Host '   Execucao remota - GLPI' -ForegroundColor White
+Write-Host '============================================================'
+Linha 'Esta janela conecta a maquina ao GLPI para receber e executar scripts.'
+Linha 'Tudo roda com a permissao de administrador desta janela.'
+Linha 'O canal fica ativo por {{MINUTOS}} minutos ou ate voce fechar esta janela.'
+
+# Identificacao minima para a maquina aparecer na lista do GLPI
+$hostNome = $env:COMPUTERNAME
+$dom = ''
+$usr = "$env:USERDOMAIN\$env:USERNAME"
+$soNome = ''
+$uuid = ''
+try {
+    $cs = Get-CimInstance Win32_ComputerSystem
+    $dom = $cs.Domain
+    if ($cs.UserName) { $usr = $cs.UserName }
+    $soNome = (Get-CimInstance Win32_OperatingSystem).Caption
+    $uuid = (Get-CimInstance Win32_ComputerSystemProduct).UUID
+} catch {}
+
 $baseP = '{{PONTE}}'
 $tokP  = '{{TOKEN}}'
 $fimP  = (Get-Date).AddMinutes({{MINUTOS}})
-$infoP = (@{ hostname = $d.hostname; uuid = $d.uuid; so = $d.so; usuario_logado = $d.usuario_logado } | ConvertTo-Json -Compress)
-Write-Host ('   Canal ativo ate ' + $fimP.ToString('HH:mm') + '.') -ForegroundColor Cyan
+$infoP = (@{ hostname = $hostNome; uuid = $uuid; so = $soNome; usuario_logado = $usr } | ConvertTo-Json -Compress)
+Write-Host ''
+Write-Host ('   Conectado como ' + $hostNome + '. Canal ativo ate ' + $fimP.ToString('HH:mm') + '.') -ForegroundColor Cyan
+Write-Host '   Aguardando scripts enviados pelo GLPI...' -ForegroundColor Gray
+
+function Executar-Arquivo($dest, $formato) {
+    # Programa e argumentos conforme o formato
+    $exe = $env:ComSpec
+    $argsP = '/c "' + $dest + '"'
+    switch ($formato) {
+        'ps1' { $exe = 'powershell.exe'; $argsP = '-NoProfile -ExecutionPolicy Bypass -File "' + $dest + '"' }
+        'py'  { $exe = 'python.exe';     $argsP = '"' + $dest + '"' }
+        'vbs' { $exe = 'cscript.exe';    $argsP = '//nologo "' + $dest + '"' }
+        'js'  { $exe = 'cscript.exe';    $argsP = '//nologo //E:jscript "' + $dest + '"' }
+    }
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $exe
+    $psi.Arguments = $argsP
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.RedirectStandardInput = $true
+    $psi.CreateNoWindow = $true
+    $psi.WorkingDirectory = $env:TEMP
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $p.StandardInput.Close()   # EOF: evita travar em 'pause' ou leitura de teclado
+    $tOut = $p.StandardOutput.ReadToEndAsync()
+    $tErr = $p.StandardError.ReadToEndAsync()
+    if ($p.WaitForExit(300000)) {
+        $code = $p.ExitCode
+    } else {
+        try { $p.Kill() } catch {}
+        $code = -2
+    }
+    $txt = [string]$tOut.Result
+    $errTxt = [string]$tErr.Result
+    if ($errTxt.Trim()) { $txt = $txt + "`n[erros]`n" + $errTxt }
+    if ($code -eq -2) { $txt = $txt + "`n[tempo esgotado: o script passou de 5 minutos e foi encerrado]" }
+    if (-not $txt.Trim()) { $txt = '(script executado; sem saida de texto)' }
+    return @{ code = $code; saida = $txt }
+}
+
 while ((Get-Date) -lt $fimP) {
     try {
         $rp = Invoke-RestMethod -Uri ($baseP + '?action=poll&token=' + $tokP) -Method Post -Body $infoP -ContentType 'application/json; charset=utf-8' -TimeoutSec 20
-        if ($rp.parar) { break }
+        if ($rp.parar) { Write-Host '   O GLPI encerrou o canal (codigo expirado).' -ForegroundColor Yellow; break }
         if ($rp.jobs) {
             foreach ($job in $rp.jobs) {
                 Write-Host ''
                 Write-Host ('>> Recebido: ' + $job.nome + ' (.' + $job.formato + ')') -ForegroundColor Yellow
                 $dest = Join-Path $env:TEMP ('icexec_' + $job.id + '.' + $job.formato)
+                $res = $null
                 try {
                     Invoke-WebRequest -Uri ($baseP + '?action=baixar&token=' + $tokP + '&job=' + $job.id) -OutFile $dest -TimeoutSec 300
-                    $saidaJ = ''
-                    $codeJ = 0
-                    switch ($job.formato) {
-                        'ps1'   { $saidaJ = (& powershell -NoProfile -ExecutionPolicy Bypass -File $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
-                        'py'    { $saidaJ = (& python $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
-                        'vbs'   { $saidaJ = (& cscript //nologo $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
-                        'js'    { $saidaJ = (& cscript //nologo //E:jscript $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
-                        default { $saidaJ = (& cmd /c $dest 2>&1 | Out-String); $codeJ = $LASTEXITCODE }
-                    }
-                    if ($null -eq $codeJ) { $codeJ = 0 }
-                    $resJ = (@{ exit = $codeJ; saida = $saidaJ } | ConvertTo-Json -Compress)
-                    Invoke-RestMethod -Uri ($baseP + '?action=result&token=' + $tokP + '&job=' + $job.id) -Method Post -Body $resJ -ContentType 'application/json; charset=utf-8' -TimeoutSec 60 | Out-Null
-                    Write-Host ('   Concluido (codigo ' + $codeJ + ')') -ForegroundColor Green
+                    $res = Executar-Arquivo $dest $job.formato
+                    Write-Host ('   Concluido (codigo ' + $res.code + ')') -ForegroundColor Green
+                    if ($res.saida) { Write-Host ('   ---- saida ----') -ForegroundColor DarkGray; Write-Host $res.saida -ForegroundColor DarkGray }
                 } catch {
-                    $resJ = (@{ exit = -1; saida = ('Falha ao executar: ' + $_.Exception.Message) } | ConvertTo-Json -Compress)
-                    try { Invoke-RestMethod -Uri ($baseP + '?action=result&token=' + $tokP + '&job=' + $job.id) -Method Post -Body $resJ -ContentType 'application/json; charset=utf-8' -TimeoutSec 60 | Out-Null } catch {}
+                    $res = @{ code = -1; saida = ('Falha ao baixar/executar: ' + $_.Exception.Message) }
                     Write-Host ('   Erro: ' + $_.Exception.Message) -ForegroundColor Red
                 } finally {
                     Remove-Item $dest -Force -ErrorAction SilentlyContinue
                 }
+                # SEMPRE devolve o resultado ao GLPI (ate 3 tentativas)
+                $resJ = (@{ exit = $res.code; saida = $res.saida } | ConvertTo-Json -Compress)
+                for ($tent = 0; $tent -lt 3; $tent++) {
+                    try { Invoke-RestMethod -Uri ($baseP + '?action=result&token=' + $tokP + '&job=' + $job.id) -Method Post -Body $resJ -ContentType 'application/json; charset=utf-8' -TimeoutSec 60 | Out-Null; break }
+                    catch { Start-Sleep -Seconds 2 }
+                }
             }
         }
     } catch { }
-    Start-Sleep -Seconds 4
+    Start-Sleep -Seconds 3
 }
 Write-Host ''
 Write-Host '============================================================'
-Write-Host '   Canal de execucao remota encerrado.' -ForegroundColor Cyan
-if ($ok) { Write-Host '   Inventario enviado. Pode fechar esta janela.' -ForegroundColor Green }
-else { Write-Host '   Inventario nao enviado. Pode fechar esta janela.' -ForegroundColor Yellow }
+Write-Host '   Canal de execucao remota encerrado. Pode fechar esta janela.' -ForegroundColor Cyan
 Write-Host '============================================================'
 PS;
     }

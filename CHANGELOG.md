@@ -2,6 +2,15 @@
 
 O arquivo para download de cada versão está em [Releases](https://github.com/glpisalvador/identificarcomputador/releases).
 
+## 1.2.0 — 2026-10-10
+
+Duas abas, dois scripts e correção da execução remota.
+
+- A página principal agora tem duas abas: **Computadores identificados** e **Execuções remotas**.
+- **Dois scripts separados:** um que só identifica o computador e fecha; outro que abre a execução remota por **10 minutos** (ou até a janela ser fechada).
+- **Correção importante:** o script enviado agora é realmente executado na máquina e sempre devolve o resultado ao GLPI. Antes, scripts com "pause" (ou que esperavam uma tecla) travavam para sempre e nada voltava. Agora cada execução roda com timeout, recebe EOF (não trava), e o GLPI é avisado se deu certo ou não.
+- A **saída** do script (inclusive o que ele lê da máquina) é capturada e registrada no log, com o computador, o arquivo, o usuário do GLPI, status e código.
+
 ## 1.1.1 — 2026-10-10
 
 Suporte ao tema escuro do GLPI.

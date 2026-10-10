@@ -216,6 +216,7 @@
                     saida.innerHTML = '<div class="cab ' + (ok ? 'ok' : 'err') + '"><i class="ti ti-' + (ok ? 'circle-check' : 'alert-triangle') + '"></i> '
                         + esc(nome) + ' — ' + (ok ? 'concluído' : j.status) + ' (código ' + (j.exit === null ? '?' : j.exit) + ', ' + fmtTempo(j.duracao) + ')</div>'
                         + '<pre class="out">' + esc(j.saida || '(sem saída)') + '</pre>';
+                    carregarLogs();
                 });
             })();
         });
@@ -286,8 +287,9 @@
             var busca = document.createElement('div');
             busca.className = 'identificarcomputador-tbl-busca';
             busca.innerHTML = '<i class="ti ti-search"></i><input type="text" id="ic-logs-busca" placeholder="Buscar nos logs..."><button type="button" class="identificarcomputador-ico" id="ic-logs-refresh" title="Atualizar"><i class="ti ti-refresh"></i></button>';
-            var cx = document.querySelector('[data-corpo="logs"] .identificarcomputador-tabela-cx');
-            cx.parentNode.insertBefore(busca, cx);
+            var tbl = document.getElementById('ic-logs-tabela');
+            var cx = tbl ? tbl.closest('.identificarcomputador-tabela-cx') : null;
+            if (cx) { cx.parentNode.insertBefore(busca, cx); }
             var tmr;
             busca.querySelector('#ic-logs-busca').addEventListener('keyup', function () { clearTimeout(tmr); tmr = setTimeout(carregarLogs, 300); });
             busca.querySelector('#ic-logs-refresh').addEventListener('click', carregarLogs);
@@ -306,12 +308,15 @@
 
     // ----------------------------------------------------------------- inicio
     function iniciar() {
-        initAbas();
+        if (!document.getElementById('ic-exec-sessoes')) { return; }
         initLogsUI();
         var inp = document.getElementById('ic-exec-file');
         if (inp) { inp.addEventListener('change', function () { enviarArquivos(inp.files); inp.value = ''; }); }
         carregarSessoes();
+        carregarLogs();
         setInterval(carregarSessoes, 3000);
+        // Chamado pela troca de aba em computador.php ao abrir "Execuções remotas"
+        window.identificarcomputadorExecApi = { abrir: function () { carregarSessoes(); carregarLogs(); } };
     }
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', iniciar); } else { iniciar(); }
 })();

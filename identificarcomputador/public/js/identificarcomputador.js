@@ -466,9 +466,26 @@
     }
 
     // ----------------------------------------------------------------- inicio
+    // Abas de topo de computador.php: Computadores identificados / Execuções remotas
+    function initTopAbas() {
+        var abas = document.querySelectorAll('[data-topaba]');
+        if (!abas.length) { return; }
+        function mostrar(nome) {
+            document.querySelectorAll('[data-topaba]').forEach(function (b) { b.classList.toggle('ativa', b.getAttribute('data-topaba') === nome); });
+            document.querySelectorAll('[data-toppanel]').forEach(function (p) { p.style.display = p.getAttribute('data-toppanel') === nome ? '' : 'none'; });
+            if (nome === 'execucoes' && window.identificarcomputadorExecApi) { window.identificarcomputadorExecApi.abrir(); }
+        }
+        abas.forEach(function (b) { b.addEventListener('click', function () { mostrar(b.getAttribute('data-topaba')); }); });
+        try {
+            var p = new URLSearchParams(window.location.search).get('aba');
+            if (p === 'execucoes' && document.querySelector('[data-topaba="execucoes"]')) { mostrar('execucoes'); }
+        } catch (e) { /* sem URLSearchParams */ }
+    }
+
     function iniciar() {
         if (document.querySelector('.identificarcomputador-busca-perfil')) { initBuscaPerfis(); }
         if (CFG.detalhe) { initDetalhe(); return; }
+        initTopAbas();
         if (document.getElementById('identificarcomputador-tabela')) { initPainel(); }
     }
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', iniciar); } else { iniciar(); }
