@@ -70,9 +70,15 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
   <div class="identificarcomputador-det-topo">
     <a class="btn identificarcomputador-btn" href="<?php echo $e($C::url('computador.php')); ?>"><i class="ti ti-arrow-left"></i> Voltar</a>
     <div class="identificarcomputador-det-nome"><i class="ti ti-device-desktop"></i> <?php echo $v($det['hostname']); ?></div>
-    <?php if ($cfgExcluir = Session::haveRight('config', UPDATE)) { ?>
-      <button type="button" class="btn identificarcomputador-btn-perigo" data-ic-excluir="<?php echo (int) $det['id']; ?>"><i class="ti ti-trash"></i> Excluir</button>
-    <?php } ?>
+    <span class="identificarcomputador-det-acoes">
+      <button type="button" class="btn identificarcomputador-btn" id="ic-enviar-itil"><i class="ti ti-ticket"></i> Enviar para chamado</button>
+      <?php if (Session::haveRight('computer', CREATE)) { ?>
+        <button type="button" class="btn identificarcomputador-btn" id="ic-converter-ativo"><i class="ti ti-transfer-in"></i> Converter em ativo</button>
+      <?php } ?>
+      <?php if (Session::haveRight('config', UPDATE)) { ?>
+        <button type="button" class="btn identificarcomputador-btn-perigo" data-ic-excluir="<?php echo (int) $det['id']; ?>"><i class="ti ti-trash"></i> Excluir</button>
+      <?php } ?>
+    </span>
   </div>
 
   <div class="identificarcomputador-abas" role="tablist">
@@ -86,37 +92,21 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
   </div>
 
   <div class="identificarcomputador-aba-corpo ativa" data-corpo="resumo">
-    <?php
-    $macP = trim((string) ($d['mac_principal'] ?? ''));
-    if ($macP === '') { $macP = (string) ($d['adaptadores_rede'][0]['mac'] ?? $det['resumo']['macs'] ?? ''); }
-    $ipP = trim((string) ($d['ip_principal'] ?? ''));
-    if ($ipP === '') { $ipP = (string) ($d['ips_detalhe'][0]['ipv4'] ?? $det['resumo']['ips'] ?? ''); }
-    $placaRede = trim((string) ($d['placa_rede_principal'] ?? $d['placa_rede'] ?? ''));
-    if ($placaRede === '' && !empty($d['adaptadores_rede'][0]['descricao'])) { $placaRede = (string) $d['adaptadores_rede'][0]['descricao']; }
-    $placaSom = $d['placas_som'] ?? '';
-    if (is_array($placaSom)) { $placaSom = implode('; ', $placaSom); }
-    $ram = isset($d['ram_total_gb']) ? ($d['ram_total_gb'] . ' GB') : $gb($det['resumo']['ram_total'] ?? 0);
-    echo $kv([
-      'Hostname'            => $d['hostname'] ?? '',
-      'Usuário logado'      => $d['usuario_logado'] ?? '',
-      'Tipo de usuário'     => $d['usuario_tipo'] ?? '',
-      'Domínio'             => ($d['dominio'] ?? '') . (isset($d['parte_de_dominio']) && !$d['parte_de_dominio'] ? ' (grupo de trabalho)' : ''),
-      'Tipo'                => $d['tipo'] ?? '',
-      'Sistema'             => trim(($d['so'] ?? '') . ' ' . ($d['so_arquitetura'] ?? '')),
-      'Instalado em'        => $d['instalado_em'] ?? '',
-      'Placa-mãe'           => $d['placa_mae'] ?? '',
-      'Processador'         => $d['processador'] ?? '',
-      'Memória RAM'         => $ram,
-      'Armazenamento'       => $gb($d['armazenamento_total_bytes'] ?? ($det['resumo']['armazenamento_total'] ?? 0)),
-      'Placa de vídeo'      => $d['placa_video'] ?? '',
-      'Placa de rede'       => $placaRede,
-      'Placa de som'        => $placaSom,
-      'Endereço MAC'        => $macP,
-      'IP'                  => $ipP,
-      'Licença do Windows'  => $d['windows_licenca'] ?? '',
-      'Licença do Office'   => $d['office_licenca'] ?? '',
-    ]);
-    ?>
+    <?php echo $kv($Comp::resumoPares($det)); ?>
+
+    <div class="identificarcomputador-bloco-tit">Monitores<?php echo isset($d['monitores_total']) ? ' (' . (int) $d['monitores_total'] . ')' : ''; ?></div>
+    <?php echo $kv([
+      'Monitores conectados' => $d['monitores_total'] ?? (is_array($d['monitores'] ?? null) ? count($d['monitores']) : ''),
+      'Resolução (Windows)'  => $d['resolucao_atual'] ?? '',
+      'Taxa de atualização'  => isset($d['refresh_atual_hz']) && $d['refresh_atual_hz'] ? ($d['refresh_atual_hz'] . ' Hz') : '',
+    ]); ?>
+    <?php echo $tab([['k'=>'fabricante','t'=>'Fabricante'],['k'=>'modelo','t'=>'Modelo'],['k'=>'cabo','t'=>'Cabo de vídeo'],['k'=>'serial','t'=>'Nº série'],['k'=>'ano','t'=>'Ano']], $d['monitores'] ?? []); ?>
+
+    <div class="identificarcomputador-bloco-tit">Acesso remoto (IDs)</div>
+    <?php echo $tab([['k'=>'programa','t'=>'Programa'],['k'=>'id','t'=>'ID'],['k'=>'versao','t'=>'Versão']], $d['acesso_remoto_lista'] ?? []); ?>
+    <?php if (!empty($d['acesso_remoto_instalados'])) { ?>
+      <p class="identificarcomputador-ajuda"><i class="ti ti-info-circle"></i> Também instalados (sem ID): <?php echo $v($d['acesso_remoto_instalados']); ?></p>
+    <?php } ?>
   </div>
 
   <div class="identificarcomputador-aba-corpo" data-corpo="hardware">
@@ -128,20 +118,20 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
     ]); ?>
     <?php echo $tab([['k'=>'nome','t'=>'CPU'],['k'=>'nucleos','t'=>'Núcleos'],['k'=>'logicos','t'=>'Lógicos'],['k'=>'clock_mhz','t'=>'Clock (MHz)'],['k'=>'socket','t'=>'Socket']], $d['processadores'] ?? []); ?>
 
-    <div class="identificarcomputador-bloco-tit">Memória (<?php echo $v($d['ram_total_gb'] ?? '', '?'); ?> GB)</div>
-    <?php echo $tab([['k'=>'slot','t'=>'Slot'],['k'=>'capacidade_gb','t'=>'GB'],['k'=>'velocidade_mhz','t'=>'MHz'],['k'=>'fabricante','t'=>'Fabricante'],['k'=>'modelo','t'=>'Modelo'],['k'=>'serial','t'=>'Nº série']], $d['memoria'] ?? []); ?>
+    <div class="identificarcomputador-bloco-tit">Memória (<?php echo $v($d['ram_total_gb'] ?? '', '?'); ?> GB · <?php echo (int) ($d['ram_slots_usados'] ?? (is_array($d['memoria'] ?? null) ? count($d['memoria']) : 0)); ?> de <?php echo (int) ($d['ram_slots_total'] ?? ($d['ram_slots_usados'] ?? 0)); ?> slot(s))</div>
+    <?php echo $tab([['k'=>'slot','t'=>'Slot'],['k'=>'capacidade_gb','t'=>'GB'],['k'=>'tipo','t'=>'Tipo'],['k'=>'barramento_mhz','t'=>'Barramento (MHz)'],['k'=>'velocidade_mhz','t'=>'Nominal (MHz)'],['k'=>'fabricante','t'=>'Fabricante'],['k'=>'modelo','t'=>'Modelo'],['k'=>'serial','t'=>'Nº série']], $d['memoria'] ?? []); ?>
 
-    <div class="identificarcomputador-bloco-tit">Discos</div>
+    <div class="identificarcomputador-bloco-tit">Discos<?php echo is_array($d['discos'] ?? null) ? ' (' . count($d['discos']) . ' unidade' . (count($d['discos']) > 1 ? 's' : '') . ')' : ''; ?></div>
     <?php echo $tab([['k'=>'modelo','t'=>'Modelo'],['k'=>'serial','t'=>'Nº série'],['k'=>'tamanho_gb','t'=>'GB'],['k'=>'tipo','t'=>'Tipo'],['k'=>'interface','t'=>'Interface'],['k'=>'saude','t'=>'Saúde']], $d['discos'] ?? []); ?>
 
     <div class="identificarcomputador-bloco-tit">Volumes</div>
     <?php echo $tab([['k'=>'letra','t'=>'Unidade'],['k'=>'rotulo','t'=>'Rótulo'],['k'=>'sistema_arquivos','t'=>'FS'],['k'=>'total_gb','t'=>'Total GB'],['k'=>'livre_gb','t'=>'Livre GB']], $d['volumes'] ?? []); ?>
 
     <div class="identificarcomputador-bloco-tit">Vídeo</div>
-    <?php echo $tab([['k'=>'nome','t'=>'Placa'],['k'=>'memoria_mb','t'=>'Memória (MB)'],['k'=>'resolucao','t'=>'Resolução'],['k'=>'driver','t'=>'Driver']], $d['placas_video'] ?? []); ?>
+    <?php echo $tab([['k'=>'nome','t'=>'Placa'],['k'=>'memoria_gb','t'=>'Memória (GB)'],['k'=>'tipo_memoria','t'=>'Tipo'],['k'=>'resolucao','t'=>'Resolução'],['k'=>'refresh_hz','t'=>'Hz'],['k'=>'driver','t'=>'Driver']], $d['placas_video'] ?? []); ?>
 
-    <div class="identificarcomputador-bloco-tit">Monitores</div>
-    <?php echo $tab([['k'=>'fabricante','t'=>'Fabricante'],['k'=>'modelo','t'=>'Modelo'],['k'=>'serial','t'=>'Nº série'],['k'=>'ano','t'=>'Ano']], $d['monitores'] ?? []); ?>
+    <div class="identificarcomputador-bloco-tit">Monitores<?php echo isset($d['monitores_total']) ? ' (' . (int) $d['monitores_total'] . ')' : ''; ?></div>
+    <?php echo $tab([['k'=>'fabricante','t'=>'Fabricante'],['k'=>'modelo','t'=>'Modelo'],['k'=>'cabo','t'=>'Cabo de vídeo'],['k'=>'serial','t'=>'Nº série'],['k'=>'ano','t'=>'Ano']], $d['monitores'] ?? []); ?>
 
     <div class="identificarcomputador-bloco-tit">Outros dispositivos</div>
     <?php echo $kv([
@@ -195,13 +185,16 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
 
     <div class="identificarcomputador-bloco-tit">Licença do Windows</div>
     <?php $lw = $d['licencas']['windows'] ?? null; if (is_array($lw)) { echo $kv([
-      'Edição'             => $lw['edicao'] ?? '',
-      'Avaliação'          => $lw['avaliacao'] ?? '',
-      'Status de ativação' => $lw['status'] ?? '',
-      'Canal da licença'   => $lw['canal'] ?? '',
-      'Chave (parcial)'    => $lw['chave_parcial'] ?? '',
-      'Chave OEM na BIOS'  => $lw['oem_na_bios'] ?? '',
-      'Descrição'          => $lw['descricao'] ?? '',
+      'Edição'                 => $lw['edicao'] ?? '',
+      'Avaliação'              => $lw['avaliacao'] ?? '',
+      'Status de ativação'     => $lw['status'] ?? '',
+      'Canal da licença'       => $lw['canal'] ?? '',
+      'Chave do produto'       => $lw['chave_produto'] ?? '',
+      'Chave OEM (BIOS)'       => $lw['chave_oem'] ?? '',
+      'Chave instalada'        => $lw['chave_instalada'] ?? '',
+      'Chave (parcial)'        => $lw['chave_parcial'] ?? '',
+      'Chave OEM na BIOS'      => $lw['oem_na_bios'] ?? '',
+      'Descrição'              => $lw['descricao'] ?? '',
     ]); } else { echo '<div class="identificarcomputador-vazio">Licença do Windows não identificada.</div>'; } ?>
 
     <div class="identificarcomputador-bloco-tit">Licença do Office</div>
@@ -228,6 +221,19 @@ $gb = static fn($bytes): string => PluginIdentificarcomputadorComputador::format
   </div>
 
 </div>
-<script>window.identificarcomputadorCfg = <?php echo json_encode(['url_ajax'=>$C::url('ajax.php'),'url_lista'=>$C::url('computador.php'),'csrf'=>Session::getNewCSRFToken(),'detalhe'=>true], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
+<?php
+$entsDisp = $Comp::entidadesDisponiveis();
+$entsJs = [];
+foreach ($entsDisp as $eid => $enome) { $entsJs[] = ['id' => (int) $eid, 'nome' => $enome]; }
+?>
+<script>window.identificarcomputadorCfg = <?php echo json_encode([
+  'url_ajax'      => $C::url('ajax.php'),
+  'url_lista'     => $C::url('computador.php'),
+  'csrf'          => Session::getNewCSRFToken(),
+  'detalhe'       => true,
+  'computador_id' => (int) $det['id'],
+  'pode_converter'=> Session::haveRight('computer', CREATE),
+  'entidades'     => $entsJs,
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <?php
 Html::footer();
